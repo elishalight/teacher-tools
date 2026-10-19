@@ -231,10 +231,16 @@ h2{font:400 16px var(--f-display);margin:0 0 8px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .back{display:inline-block;margin-bottom:6px;color:var(--accent);font:500 13px var(--f-body);text-decoration:none}
 .back:hover{text-decoration:underline}
+.chartbox{border:1px solid var(--line,#d9dde6);border-radius:10px;padding:8px 12px;margin:10px 0;background:#fff}
+.chartbox summary{cursor:pointer;font-weight:600}
+.chartpage{border:1px solid #cfd3dc;background:#fff;padding:0;max-width:420px;margin:0 auto;position:relative;direction:ltr}
+.chartpage svg{display:block;width:100%;height:auto}
+.chartttl{position:absolute;top:2.2%;left:0;right:0;text-align:center;font:12px Arial,sans-serif;color:#222}
 html[dir=rtl] .room,html[dir=rtl] .board,html[dir=rtl] .mini,html[dir=rtl] .stepper{direction:ltr}
 html[dir=rtl] .board bdi,html[dir=rtl] .stepper .lbl{direction:rtl}
 html[dir=rtl] input[type=number]{direction:ltr;text-align:right}
 </style>
+<script src="../shared/eye-chart.js"></script>
 </head>
 <body>
 <div class="wrap" style="max-width:820px">
@@ -316,7 +322,7 @@ function lineOpts(sel){
 }
 function render(){
   var R=S.room,tl=R.unit==='tile',ul=tl?'tiles':'m',h='';
-  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>';
+  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>'+(window.EyeChart?EyeChart.html():'');
   h+='<div class="builder"><div class="fl">Your room</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Measure the room in</span><select id="roomUnit"><option value="m"'+(tl?'':' selected')+'>meters</option><option value="tile"'+(tl?' selected':'')+'>floor tiles</option></select></label>'+
     (tl?numInput('data-room','tile','Size of one floor tile (cm)',R.tile,10,200):'')+
     numInput('data-room','rows','Rows of desks in the room',R.rows,1,12,1)+

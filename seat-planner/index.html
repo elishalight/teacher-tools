@@ -231,10 +231,16 @@ h2{font:400 16px var(--f-display);margin:0 0 8px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .back{display:inline-block;margin-bottom:6px;color:var(--accent);font:500 13px var(--f-body);text-decoration:none}
 .back:hover{text-decoration:underline}
+.chartbox{border:1px solid var(--line,#d9dde6);border-radius:10px;padding:8px 12px;margin:10px 0;background:#fff}
+.chartbox summary{cursor:pointer;font-weight:600}
+.chartpage{border:1px solid #cfd3dc;background:#fff;padding:0;max-width:420px;margin:0 auto;position:relative;direction:ltr}
+.chartpage svg{display:block;width:100%;height:auto}
+.chartttl{position:absolute;top:2.2%;left:0;right:0;text-align:center;font:12px Arial,sans-serif;color:#222}
 html[dir=rtl] .room,html[dir=rtl] .board,html[dir=rtl] .mini,html[dir=rtl] .stepper{direction:ltr}
 html[dir=rtl] .board bdi,html[dir=rtl] .stepper .lbl{direction:rtl}
 html[dir=rtl] input[type=number]{direction:ltr;text-align:right}
 </style>
+<script src="../shared/eye-chart.js"></script>
 </head>
 <body>
 
@@ -336,35 +342,9 @@ var PIN_SVG='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
 var X_SVG='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
 
 /* ---------- starter data (the class from the chat) ---------- */
-var KIDS0=[['s1','Student 1',''],['s2','Student 2',''],['s3','Student 3',''],['s4','Student 4',''],['s5','Student 5',''],['s6','Student 6',''],['s7','Student 7',''],['s8','Student 8',''],['s9','Student 9','']];
-var PLANS0=[
- 's1 s8 s6 s2 s7 s4 s5 s3 s9',
- 's6 s2 s1 s4 s8 s7 s9 s3 s5',
- 's1 s2 s6 s7 s8 s4 s5 s3 s9',
- 's1 s7 s6 s8 s2 s4 s5 s3 s9',
- 's6 s7 s1 s4 s2 s8 s9 s3 s5',
- 's1 s8 s3 s2 s7 s4 s5 s6 s9',
- 's1 s2 s4 s8 s7 s3 s9 s6 s5',
- 's4 s7 s1 s3 s8 s2 s5 s6 s9',
- 's1 s7 s4 s2 s8 s6 s9 s3 s5',
- 's3 s8 s1 s4 s7 s2 s9 s6 s5'
-];
 function defaultState(){
-  return {
-    v:1, rows:3, cols:3,
-    kids:KIDS0.map(function(k){return {id:k[0],name:k[1],alt:k[2]};}),
-    seats:PLANS0[0].split(' '),
-    pinned:[],
-    wants:[],
-    holes:[],eyes:[],room:{unit:'m',tile:60,front:2.5,gap:1,letter:5},
-    rules:[
-      {id:'r1',type:'apart',as:['s1'],bs:['s6','s4','s3','s5'],mode:'diag',on:true},
-      {id:'r2',type:'apart',as:['s5'],bs:['s9','s4'],mode:'diag',on:true},
-      {id:'r3',type:'zone',kids:['s9','s5'],zone:'back',not:false,on:true},
-      {id:'r4',type:'zone',kids:['s7'],zone:'back',not:true,on:true}
-    ],
-    plans:PLANS0.map(function(s,i){return {id:'p'+i,name:'Plan '+(i+1),rows:3,cols:3,seats:s.split(' ')};})
-  };
+  var seats=[];for(var i=0;i<9;i++)seats.push(null);
+  return {v:1,rows:3,cols:3,kids:[],seats:seats,pinned:[],wants:[],holes:[],eyes:[],room:{unit:'m',tile:60,front:2.5,gap:1,letter:5},rules:[],plans:[]};
 }
 
 /* ---------- validation of loaded / imported state ---------- */
@@ -1150,7 +1130,7 @@ function roomInput(key,label,val,min,max){
 function renderEyes(){
   var pane=$('#paneEyes');if(!pane)return;
   var km=kidMap(),h='';
-  if(!S.kids.length){pane.innerHTML='<p class="muted">Add kids on the Kids tab first.</p>';return;}
+  if(!S.kids.length){pane.innerHTML='<h2>Eye tests</h2>'+(window.EyeChart?EyeChart.html():'')+'<p class="muted">Add kids on the Kids tab to enter their eye tests.</p>';return;}
   if(!km[UI.e.kid])loadEye(S.kids[0].id);
   var e=UI.e,R=S.room,has=S.eyes.some(function(x){return x.kid===e.kid;});
   var lineOpts=function(sel){
@@ -1158,7 +1138,7 @@ function renderEyes(){
     EYE_LINES.forEach(function(x,i){o+='<option value="'+(i+1)+'"'+(sel===i+1?' selected':'')+'>Line '+(i+1)+' · 20/'+x+'</option>';});
     return o;
   };
-  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>';
+  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>'+(window.EyeChart?EyeChart.html():'');
   var tl=R.unit==='tile',ul=tl?'tiles':'m';
   h+='<div class="builder"><div class="fl">Your room</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Measure the room in</span><select id="roomUnit"><option value="m"'+(tl?'':' selected')+'>meters</option><option value="tile"'+(tl?' selected':'')+'>floor tiles</option></select></label>'+(tl?roomInput('tile','Size of one floor tile (cm)',R.tile,10,200):'')+roomInput('front','Board to front row ('+ul+')',R.front,0.5,60)+roomInput('gap','Space between rows ('+ul+')',R.gap,0.3,10)+roomInput('letter','Board letters, height (cm)',R.letter,1,30)+'</div><div class="muted">Distance is measured straight back from the board. Seats off to the side are a little farther than this.'+(tl?' Measure one floor tile along its side, then just count tiles.':'')+'</div></div>';
   h+='<div class="builder">';
