@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Eye Test · Teacher Tools</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Secular+One&display=swap">
+<style>
+/* Layout concept: the classroom seen from the back, chalkboard bar on top, desks as draggable tiles.
+   Beside it, one panel with Rules / Kids / Plans tabs. Palette: ink navy, pen blue, highlighter yellow, board green. */
+:root{
+  --paper:#EDF0F5; --sheet:#FFFFFF; --ink:#14213D; --ink-2:#56637C; --line:#D6DCE6;
+  --desk:#FFFFFF; --desk-edge:#C3CCDB;
+  --accent:#2B59D9; --accent-ink:#FFFFFF; --accent-soft:#E4EBFC;
+  --hl:#FFE066; --hl-ink:#3F3200;
+  --ok:#17835A; --ok-bg:#E3F4EC; --bad:#C8323F; --bad-bg:#FCE9EB;
+  --board:#24493E; --board-ink:#E7F1EC;
+  --want:#D99A00; --want-soft:#FFF3C9;
+  --f-display:'Secular One','Rubik','Segoe UI',system-ui,sans-serif;
+  --f-body:'Rubik','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1623; --sheet:#172033; --ink:#E8EDF7; --ink-2:#97A3BA; --line:#2B3750;
+    --desk:#1F2B44; --desk-edge:#0A0F1A;
+    --accent:#7FA2FF; --accent-ink:#0B1530; --accent-soft:#22305A;
+    --hl:#E5BF3A; --hl-ink:#1D1600;
+    --ok:#4CC38A; --ok-bg:#153A2B; --bad:#FF7A86; --bad-bg:#3B1F27;
+    --board:#1B3A31; --board-ink:#DDEBE4;
+    --want:#FFD34D; --want-soft:#4A3B0B;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1623; --sheet:#172033; --ink:#E8EDF7; --ink-2:#97A3BA; --line:#2B3750;
+  --desk:#1F2B44; --desk-edge:#0A0F1A;
+  --accent:#7FA2FF; --accent-ink:#0B1530; --accent-soft:#22305A;
+  --hl:#E5BF3A; --hl-ink:#1D1600;
+  --ok:#4CC38A; --ok-bg:#153A2B; --bad:#FF7A86; --bad-bg:#3B1F27;
+  --board:#1B3A31; --board-ink:#DDEBE4;
+  --want:#FFD34D; --want-soft:#4A3B0B;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--f-body); font-size:14px; line-height:1.4;
+  padding-block:18px 56px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:16px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font:400 28px/1.1 var(--f-display);margin:0;text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--ink-2);font-size:12px;min-height:16px}
+.hactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+
+.btn{font:500 13px var(--f-body);padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible,.pick button:focus-visible,.seg button:focus-visible,.x:focus-visible,.pin:focus-visible,.stepper button:focus-visible,.desk:focus-visible,select:focus-visible,input:focus-visible,.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input[type=text]{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);min-width:0}
+
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--line);color:var(--ink-2);background:var(--sheet)}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+.status{display:flex;gap:6px;flex-wrap:wrap}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--sheet);overflow:hidden}
+.stepper .lbl{padding:0 8px;font-size:12px;color:var(--ink-2)}
+.stepper button{width:30px;height:32px;border:0;border-left:1px solid var(--line);background:none;color:var(--ink);font-size:16px;cursor:pointer}
+.stepper b{min-width:28px;text-align:center;font-variant-numeric:tabular-nums}
+
+.count{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.count .n{font:400 30px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.count .n.zero{color:var(--bad)}
+.count .l{font-weight:500}
+.count .s{flex-basis:100%;font-size:12px;color:var(--ink-2)}
+.count .s button{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);padding:0;cursor:pointer;text-decoration:underline}
+.board{background:var(--board);color:var(--board-ink);text-align:center;border-radius:6px;padding:7px;margin:0 auto 14px;width:min(70%,420px);font:400 13px var(--f-display);letter-spacing:.1em;box-shadow:inset 0 -3px 0 rgba(0,0,0,.28)}
+.room{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:10px}
+.desk{position:relative;min-height:72px;border:1.5px dashed var(--desk-edge);border-radius:8px;display:grid;place-items:center;padding:4px;cursor:pointer;transition:background .12s,border-color .12s}
+.desk.has{border-style:solid;background:var(--desk);box-shadow:0 3px 0 var(--desk-edge)}
+.desk.bad{border-color:var(--bad);background:var(--bad-bg)}
+.desk.sel{outline:3px solid var(--hl);outline-offset:1px}
+.desk.drop{border-color:var(--accent);background:var(--accent-soft);border-style:solid}
+.desk.rf,.tray .chip.rf{outline:2px solid var(--accent);outline-offset:1px}
+.desk .pos{font-size:11px;color:var(--ink-2);opacity:.75;font-variant-numeric:tabular-nums}
+.edge{margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+
+.chip{position:relative;width:100%;text-align:center;padding:6px 4px;border-radius:6px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;display:flex;flex-direction:column;align-items:center;gap:1px}
+.chip .nm{font-weight:600;font-size:17px;line-height:1.15;overflow-wrap:anywhere}
+.chip .alt{font-size:11px;color:var(--ink-2);overflow-wrap:anywhere}
+.chip.sel{background:var(--hl);color:var(--hl-ink)}
+.chip.sel .alt{color:var(--hl-ink)}
+.chip.dragging{opacity:.3}
+.chip .warn{position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center}
+.pin{position:absolute;top:1px;right:1px;width:24px;height:24px;display:grid;place-items:center;border:0;background:transparent;color:var(--ink-2);opacity:0;cursor:pointer;border-radius:5px;padding:0}
+.desk:hover .pin,.tray .chip:hover .pin,.pin:focus-visible,.pin[aria-pressed="true"]{opacity:1}
+.pin[aria-pressed="true"]{color:var(--accent)}
+@media (hover:none){.pin{opacity:.6}}
+.ghost{position:fixed;left:0;top:0;z-index:100;pointer-events:none;background:var(--hl);color:var(--hl-ink);box-shadow:0 12px 26px rgba(0,0,0,.28);border-radius:8px;cursor:grabbing}
+.ghost .alt{color:var(--hl-ink)}
+.ghost .pin,.ghost .warn{display:none}
+body.is-dragging{cursor:grabbing}
+
+.desk.wz{background:var(--want-soft);border-color:var(--want);border-style:solid}
+.desk.wz.has{box-shadow:inset 0 0 0 2px var(--want),0 3px 0 var(--desk-edge)}
+.chip .wdot{position:absolute;right:6px;bottom:5px;width:11px;height:11px;border-radius:50%;background:var(--want);box-shadow:0 0 0 2px var(--sheet)}
+.chip .wdot.must{background:var(--bad)}
+.desk.has .chip .wdot{box-shadow:0 0 0 2px var(--desk)}
+.pill.want{background:var(--want-soft);color:var(--ink);border-color:var(--want)}
+.badge.warn{background:var(--want);color:#1D1600}
+.dot.want{background:var(--want);color:#1D1600}
+.wants .want{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:11px 6px;border-top:1px solid var(--line);border-radius:6px}
+.wants .want.off .wtext{opacity:.5}
+.wtext{min-width:0;line-height:1.6}
+.wmeta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--ink-2)}
+.wnow{font-size:12px;color:var(--ink-2)}
+.desk.hole{visibility:hidden;min-height:72px}
+.room.editing .desk{cursor:pointer}
+.room.editing .desk.hole.edit{visibility:visible;border:1.5px dotted var(--desk-edge);background:none;opacity:.7}
+.room.editing .desk.has{border-style:dashed}
+.room.editing .pin{display:none}
+.room.editing .chip{pointer-events:none}
+.desk .rm{position:absolute;top:1px;right:6px;font-size:16px;line-height:1;color:var(--bad);font-weight:600}
+.layoutbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--accent);border-radius:10px;background:var(--accent-soft);font-size:13px}
+.layoutbar[hidden]{display:none}
+.mini span.hole{visibility:hidden}
+.eyecard{border-top:1px solid var(--line);padding:11px 6px}
+.rowstrip{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.lv{padding:3px 8px;border-radius:8px;font-size:12px;border:1px solid transparent;text-align:center}
+.lv small{display:block;font-size:11px;opacity:.85}
+.lv.easy,.lv.ok{background:var(--ok-bg);color:var(--ok)}
+.lv.ok{opacity:.85}
+.lv.hard{background:var(--want-soft);color:var(--ink);border-color:var(--want)}
+.lv.vhard,.lv.no{background:var(--bad-bg);color:var(--bad)}
+.lv.here{outline:2px solid var(--ink);outline-offset:1px}
+.chip .edot{position:absolute;left:4px;bottom:3px;width:14px;height:14px;display:block}
+.chip .edot.hard{color:var(--want)}
+.chip .edot.vhard,.chip .edot.no{color:var(--bad)}
+.roomrow{display:flex;flex-wrap:wrap;gap:8px 14px}
+.roomrow input{width:5em}
+.sugg{margin-top:6px;font-size:12px;color:var(--ink-2)}
+.sugg b{color:var(--ink)}
+.seg button.sug::after{content:"\2605";margin-left:4px;font-size:10px}
+.pri{display:inline-block;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.7}
+.pri.must{background:var(--ink);color:var(--paper)}
+.pri.high{background:var(--accent);color:var(--accent-ink)}
+.pri.med{background:var(--accent-soft);color:var(--ink)}
+.pri.low{background:var(--line);color:var(--ink)}
+.linkbtn{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);padding:2px 4px;cursor:pointer;border-radius:5px}
+.trayhead{margin:16px 0 6px;font:400 14px var(--f-display);color:var(--ink-2)}
+.tray{padding:10px;border:1.5px dashed var(--line);border-radius:10px;min-height:58px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tray.drop{border-color:var(--accent);background:var(--accent-soft)}
+.tray .chip{width:auto;min-width:80px;background:var(--desk);border:1px solid var(--desk-edge);box-shadow:0 2px 0 var(--desk-edge);padding:6px 14px}
+.tray .chip.sel{background:var(--hl)}
+.tray .empty{color:var(--ink-2);font-size:12px}
+.hint{margin:12px 0 0;color:var(--ink-2);font-size:12px}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:-4px -4px 14px;padding:0 4px;overflow-x:auto}
+.tab{padding:9px 12px;border:0;background:none;font:500 14px var(--f-body);color:var(--ink-2);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--line);color:var(--ink);font-size:11px;text-align:center}
+.badge.bad{background:var(--bad);color:#fff}
+h2{font:400 16px var(--f-display);margin:0 0 8px}
+.muted{color:var(--ink-2);font-size:12px}
+
+.builder{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);display:grid;gap:10px;margin-bottom:12px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);font:500 12px var(--f-body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.fl{font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);font:500 13px var(--f-body);cursor:pointer}
+.pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pick button small{font-weight:400;opacity:.7;margin-left:3px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.rules{list-style:none;margin:0;padding:0}
+.rule{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:11px 6px;border-top:1px solid var(--line);border-radius:6px}
+.rule.hl{background:var(--accent-soft)}
+.rule.off .rtext{opacity:.5}
+.dot{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--line);color:var(--ink-2);margin-top:1px}
+.dot.ok{background:var(--ok-bg);color:var(--ok)}
+.dot.bad{background:var(--bad);color:#fff}
+.rtext{min-width:0;line-height:1.7}
+.k{display:inline-block;padding:0 8px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-weight:500;line-height:1.6}
+.why{color:var(--bad);font-size:12px;line-height:1.5}
+.mode{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:2px;flex-wrap:wrap}
+.mode select{padding:3px 6px;font-size:12px}
+.ract{display:flex;gap:6px;align-items:flex-start}
+.x{width:26px;height:26px;border:0;background:transparent;color:var(--ink-2);border-radius:6px;cursor:pointer;display:grid;place-items:center;padding:0}
+.x:hover{background:var(--bad-bg);color:var(--bad)}
+.sw{position:relative;display:inline-block;width:34px;height:20px;margin-top:3px}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:10px;background:var(--line);transition:background .12s;pointer-events:none}
+.sw span::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--sheet);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .12s}
+.sw input:checked + span{background:var(--accent)}
+.sw input:checked + span::after{transform:translateX(14px)}
+.sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+.kidrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-bottom:6px}
+.kidrow input{width:100%}
+.addkid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.plan{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper);display:grid;gap:6px;min-width:0}
+.plan input.pname{font-weight:500;padding:3px 6px;width:100%;border-color:transparent;background:transparent}
+.plan input.pname:hover,.plan input.pname:focus{border-color:var(--line);background:var(--sheet)}
+.mini{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:3px;cursor:pointer}
+.mini span{font-size:10px;padding:4px 1px;text-align:center;background:var(--desk);border:1px solid var(--desk-edge);border-radius:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px}
+.plan .meta{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:12px}
+.plan .st.ok{color:var(--ok)}
+.plan .st.bad{color:var(--bad)}
+.plan .links{display:flex;gap:2px}
+.plan .links button{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);cursor:pointer;padding:2px 6px;border-radius:5px}
+.plan .links button.del{color:var(--bad)}
+.sect{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+
+.toasts{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));pointer-events:none;z-index:200}
+.toast{pointer-events:auto;background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.28);max-width:min(520px,100%)}
+.tbtn{background:none;border:0;color:var(--hl);font:600 13px var(--f-body);cursor:pointer;padding:2px 4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.back{display:inline-block;margin-bottom:6px;color:var(--accent);font:500 13px var(--f-body);text-decoration:none}
+.back:hover{text-decoration:underline}
+html[dir=rtl] .room,html[dir=rtl] .board,html[dir=rtl] .mini,html[dir=rtl] .stepper{direction:ltr}
+html[dir=rtl] .board bdi,html[dir=rtl] .stepper .lbl{direction:rtl}
+html[dir=rtl] input[type=number]{direction:ltr;text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap" style="max-width:820px">
+  <header class="top">
+    <div>
+      <a class="back" href="../">&larr; Teacher Tools</a>
+      <h1>Eye Test Helper</h1>
+      <p class="sub" id="saveState">Not saved automatically. Use Backup file to keep your work.</p>
+    </div>
+    <div class="hactions">
+      <button class="btn" type="button" data-lang-toggle data-notr>עברית</button>
+    </div>
+  </header>
+  <section class="card" aria-label="Eye tests" id="app"></section>
+</div>
+<div class="toasts" aria-live="polite"><div id="toast" class="toast" hidden></div></div>
+<input type="file" id="impFile" accept=".json,application/json" hidden>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+var X_SVG='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
+var EYE_LINES=[200,100,80,63,50,40,32,25,20],E_PRINT_CM=4.4,CHART_FT=10;
+var LEVELS={easy:{k:'easy',label:'Easy'},ok:{k:'ok',label:'Fine'},hard:{k:'hard',label:'Hard'},vhard:{k:'vhard',label:'Very hard'},no:{k:'no',label:'Can’t read'}};
+var S={room:{unit:'m',tile:60,rows:4,front:2.5,gap:1,letter:5},tests:[]};
+var E=blank(),dirty=false;
+
+function blank(){return {id:null,name:'',dist:'3',unit:S.room.unit==='tile'?'tile':'m',echo:'',glasses:false,both:0,re:0,le:0};}
+function cleanRoom(r){
+  r=r&&typeof r==='object'?r:{};
+  var f=function(v,d,a,b){v=parseFloat(v);return isFinite(v)?clamp(v,a,b):d;};
+  var unit=r.unit==='tile'?'tile':'m';
+  return {unit:unit,tile:f(r.tile,60,10,200),rows:Math.round(f(r.rows,4,1,12)),front:f(r.front,unit==='tile'?4:2.5,0.5,60),gap:f(r.gap,unit==='tile'?2:1,0.3,10),letter:f(r.letter,5,1,30)};
+}
+function cleanTests(arr){
+  var L=function(v){v=v|0;return v>=1&&v<=9?v:0;};
+  return (Array.isArray(arr)?arr:[]).map(function(e){
+    if(!e||typeof e!=='object')return null;
+    var d=parseFloat(e.dist),ec=parseFloat(e.echo);
+    if(!(d>0))return null;
+    var o={id:String(e.id||uid()),name:String(e.name||'').slice(0,60),dist:clamp(d,0.3,60),unit:e.unit==='ft'?'ft':(e.unit==='tile'?'tile':'m'),echo:ec>0?clamp(ec,0.5,200):0,glasses:!!e.glasses,both:L(e.both),re:L(e.re),le:L(e.le)};
+    return (o.both||o.re||o.le)?o:null;
+  }).filter(Boolean).slice(0,200);
+}
+function eyeMeters(e){var d=+e.dist||0;return e.unit==='ft'?d*0.3048:(e.unit==='tile'?d*S.room.tile/100:d);}
+function roomM(v){return S.room.unit==='tile'?v*S.room.tile/100:v;}
+function r1(x){return Math.round(x*10)/10;}
+function eyeDistText(e){
+  var u=e.unit==='ft'?'ft':(e.unit==='tile'?(+e.dist===1?'tile':'tiles'):'m');
+  return e.dist+' '+u+(e.unit==='m'?'':' ('+r1(eyeMeters(e))+' m)');
+}
+function eyeBestLine(e){return Math.max(e.both|0,e.re|0,e.le|0);}
+function eyeAcuity(e){
+  var ix=eyeBestLine(e),dm=eyeMeters(e);
+  if(ix<1||ix>9||!(dm>0))return null;
+  var sc=e.echo>0?e.echo/E_PRINT_CM:1;
+  return {Y:EYE_LINES[ix-1]*(CHART_FT*0.3048/dm)*sc,line:ix,assumed:!(e.echo>0)};
+}
+function eyeRowMargin(Y,row){
+  var D=roomM(S.room.front)+row*roomM(S.room.gap);
+  return ((S.room.letter/100)/D*3437.75)/(Y/4);
+}
+function eyeLevel(m){return m>=3?LEVELS.easy:m>=2?LEVELS.ok:m>=1.4?LEVELS.hard:m>=1?LEVELS.vhard:LEVELS.no;}
+function eyeLastOK(Y){var last=-1;for(var r=0;r<S.room.rows;r++){if(eyeRowMargin(Y,r)>=2)last=r;else break;}return last;}
+function acuText(Y){return '20/'+Math.round(Y)+' (6/'+Math.round(Y*0.3)+')';}
+
+var toastT=null;
+function toast(msg){var t=$('#toast');t.innerHTML='<span>'+esc(msg)+'</span>';t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;},3500);}
+function numInput(attr,key,label,val,min,max,step){
+  return '<label class="row"><span class="fl" style="margin:0">'+label+'</span><input type="number" '+attr+'="'+key+'" min="'+min+'" max="'+max+'" step="'+(step||0.1)+'" value="'+val+'" aria-label="'+label+'"></label>';
+}
+function lineOpts(sel){
+  var o='<option value="0"'+(sel===0?' selected':'')+'>Not tested</option>';
+  EYE_LINES.forEach(function(x,i){o+='<option value="'+(i+1)+'"'+(sel===i+1?' selected':'')+'>Line '+(i+1)+' · 20/'+x+'</option>';});
+  return o;
+}
+function render(){
+  var R=S.room,tl=R.unit==='tile',ul=tl?'tiles':'m',h='';
+  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>';
+  h+='<div class="builder"><div class="fl">Your room</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Measure the room in</span><select id="roomUnit"><option value="m"'+(tl?'':' selected')+'>meters</option><option value="tile"'+(tl?' selected':'')+'>floor tiles</option></select></label>'+
+    (tl?numInput('data-room','tile','Size of one floor tile (cm)',R.tile,10,200):'')+
+    numInput('data-room','rows','Rows of desks in the room',R.rows,1,12,1)+
+    numInput('data-room','front','Board to front row ('+ul+')',R.front,0.5,60)+
+    numInput('data-room','gap','Space between rows ('+ul+')',R.gap,0.3,10)+
+    numInput('data-room','letter','Board letters, height (cm)',R.letter,1,30)+
+    '</div><div class="muted">Distance is measured straight back from the board. Seats off to the side are a little farther than this.'+(tl?' Measure one floor tile along its side, then just count tiles.':'')+'</div></div>';
+  var has=!!E.id;
+  h+='<div class="builder">';
+  h+='<div><label class="fl" for="eName">Name</label><input type="text" id="eName" dir="auto" value="'+esc(E.name)+'" placeholder="Kid name (optional)" style="width:100%"></div>';
+  h+='<div><div class="fl">How far away they stood</div><div class="row"><input type="number" id="eDist" min="0.3" step="0.1" value="'+esc(E.dist)+'" style="width:5em" aria-label="Distance"><select id="eUnit" aria-label="Unit"><option value="m"'+(E.unit==='m'?' selected':'')+'>meters</option><option value="ft"'+(E.unit==='ft'?' selected':'')+'>feet</option><option value="tile"'+(E.unit==='tile'?' selected':'')+'>floor tiles</option></select></div></div>';
+  h+='<div><label class="fl" for="eEcm">Height of the big E on the projected chart (cm)</label><input type="number" id="eEcm" min="0" step="0.5" value="'+esc(E.echo)+'" placeholder="Measure it, or leave empty" style="width:100%"><div class="muted" style="margin-top:4px">A projected chart is not the printed size, so measure the tall E at the top with a ruler. On the printed page it is about 4.4 cm. If you leave it empty the planner assumes the printed size and marks the result as a rough guess.</div></div>';
+  h+='<div><div class="fl">Smallest line they read</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Both eyes</span><select id="eBoth">'+lineOpts(E.both)+'</select></label><label class="row"><span class="fl" style="margin:0">Right eye</span><select id="eRe">'+lineOpts(E.re)+'</select></label><label class="row"><span class="fl" style="margin:0">Left eye</span><select id="eLe">'+lineOpts(E.le)+'</select></label></div><div class="muted" style="margin-top:4px">Pick the last line where they got at least half the letters. Use Not tested for anything you skipped. If you filled in more than one, the best one is used.</div></div>';
+  h+='<label class="row"><input type="checkbox" id="eGl"'+(E.glasses?' checked':'')+'> They wore glasses during the test</label>';
+  h+='<div class="sugg" id="ePrev"></div>';
+  h+='<div class="row"><button type="button" class="btn primary" id="saveEye">'+(has?'Update test':'Save test')+'</button>'+(has?'<button type="button" class="btn" id="cancelEye">Cancel edit</button>':'')+'</div></div>';
+  var list=S.tests.map(function(t){return {t:t,a:eyeAcuity(t)};}).filter(function(x){return x.a;}).sort(function(a,b){return b.a.Y-a.a.Y;});
+  list.forEach(function(x){
+    var t=x.t,a=x.a,last=eyeLastOK(a.Y),strip='';
+    for(var r=0;r<R.rows;r++){var lv=eyeLevel(eyeRowMargin(a.Y,r));strip+='<span class="lv '+lv.k+'">Row '+(r+1)+'<small>'+lv.label+'</small></span>';}
+    var eyes=[];if(t.both)eyes.push('both eyes');if(t.re)eyes.push('right');if(t.le)eyes.push('left');
+    var sum=last>=R.rows-1?'Fine from every row':(last<0?'No row is comfortable. The front row is the best choice.':'Fine up to row '+(last+1));
+    h+='<div class="eyecard"><div><bdi class="k">'+esc(t.name||'Kid')+'</bdi> · <b>'+acuText(a.Y)+'</b></div>'+
+      '<div class="wmeta"><span>Read line '+a.line+' (20/'+EYE_LINES[a.line-1]+' on the chart) from '+esc(eyeDistText(t))+'</span><span>tested: '+eyes.join(', ')+'</span>'+(t.glasses?'<span>with glasses</span>':'')+(a.assumed?'<span>rough guess: chart size not entered</span>':'')+'</div>'+
+      '<div class="rowstrip" role="group" aria-label="Board visibility by row">'+strip+'</div>'+
+      '<div class="wnow">'+sum+'</div>'+
+      '<div class="row" style="margin-top:6px"><button type="button" class="linkbtn" data-eedit="'+esc(t.id)+'">Edit</button>'+
+      '<button type="button" class="x" data-edel="'+esc(t.id)+'" aria-label="Remove test" title="Remove test">'+X_SVG+'</button></div></div>';
+  });
+  if(!list.length)h+='<p class="muted" style="padding:10px 0">No eye tests yet.</p>';
+  h+='<p class="muted">This is a rough guide from a chart screening, not a medical test. Fine means the board letters are comfortably bigger than the smallest the kid can read. Hard means they will probably squint or miss things. A kid with a real concern should see an eye doctor.</p>';
+  h+='<div class="sect"><h2>Share and back up</h2><div class="row"><button type="button" class="btn" id="expJson">Backup file</button><button type="button" class="btn" id="impBtn">Restore backup</button></div></div>';
+  $('#app').innerHTML=h;
+  preview();
+}
+function preview(){
+  var el=$('#ePrev');if(!el)return;
+  var a=eyeAcuity({dist:parseFloat(E.dist),unit:E.unit,echo:parseFloat(E.echo)||0,both:E.both,re:E.re,le:E.le});
+  if(!a){el.textContent='Enter the distance and a line to see the estimated acuity.';return;}
+  el.innerHTML='Estimated acuity: <b>'+acuText(a.Y)+'</b>'+(a.assumed?'. The chart size is not entered, so this assumes the printed size.':'.')+(E.unit!=='m'?' <span>Distance: about '+r1(eyeMeters({dist:parseFloat(E.dist),unit:E.unit}))+' m.</span>':'');
+}
+function save(){
+  var d=parseFloat(E.dist),ec=parseFloat(E.echo);
+  if(!(d>0)){toast('Enter how far away the kid stood.');return;}
+  if(!eyeBestLine(E)){toast('Pick the smallest line they read.');return;}
+  var rec={id:E.id||uid(),name:(E.name||'').trim().slice(0,60),dist:clamp(d,0.3,60),unit:E.unit==='ft'?'ft':(E.unit==='tile'?'tile':'m'),echo:ec>0?clamp(ec,0.5,200):0,glasses:!!E.glasses,both:E.both|0,re:E.re|0,le:E.le|0};
+  var upd=S.tests.some(function(x){return x.id===rec.id;});
+  S.tests=upd?S.tests.map(function(x){return x.id===rec.id?rec:x;}):S.tests.concat([rec]);
+  dirty=true;E=blank();E.unit=rec.unit;E.echo=rec.echo?String(rec.echo):'';E.dist=String(rec.dist);E.name='';
+  render();toast(upd?'Updated the eye test':'Saved an eye test');
+}
+function exportJson(){
+  var blob=new Blob([JSON.stringify({v:1,tool:'eye-test',room:S.room,tests:S.tests},null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='eye-test-backup.json';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+  dirty=false;toast('Saved eye-test-backup.json');
+}
+function importJson(file){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var o=null;try{o=JSON.parse(String(fr.result));}catch(e){}
+    if(!o||typeof o!=='object'||(!Array.isArray(o.tests)&&!o.room)){toast('That file is not an eye test backup.');return;}
+    S.room=cleanRoom(o.room);S.tests=cleanTests(o.tests);E=blank();dirty=false;render();toast('Backup restored');
+  };
+  fr.onerror=function(){toast('Could not read that file.');};
+  fr.readAsText(file);
+}
+document.addEventListener('click',function(e){
+  var t=e.target,el;
+  if((el=t.closest('[data-eedit]'))){
+    var x=S.tests.filter(function(q){return q.id===el.dataset.eedit;})[0];
+    if(x){E={id:x.id,name:x.name,dist:String(x.dist),unit:x.unit,echo:x.echo?String(x.echo):'',glasses:x.glasses,both:x.both,re:x.re,le:x.le};render();var b=document.querySelector('#app .builder:nth-of-type(2)');if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest'});}
+    return;
+  }
+  if((el=t.closest('[data-edel]'))){S.tests=S.tests.filter(function(q){return q.id!==el.dataset.edel;});dirty=true;if(E.id===el.dataset.edel)E=blank();render();toast('Removed the eye test');return;}
+  var id=t.id||(t.closest('button')&&t.closest('button').id);
+  if(id==='saveEye')save();
+  else if(id==='cancelEye'){E=blank();render();}
+  else if(id==='expJson')exportJson();
+  else if(id==='impBtn')$('#impFile').click();
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='impFile'){if(t.files&&t.files[0])importJson(t.files[0]);t.value='';return;}
+  if(t.id==='roomUnit'){
+    var nu=t.value==='tile'?'tile':'m',R=S.room,k=R.tile/100;
+    if(nu!==R.unit){
+      if(nu==='tile'){R.front=Math.round(R.front/k*2)/2;R.gap=Math.round(R.gap/k*2)/2;}
+      else{R.front=Math.round(R.front*k*10)/10;R.gap=Math.round(R.gap*k*10)/10;}
+      R.unit=nu;S.room=cleanRoom(R);dirty=true;render();
+    }
+    return;
+  }
+  if(t.dataset.room){var v=parseFloat(t.value);if(isFinite(v)){S.room[t.dataset.room]=v;S.room=cleanRoom(S.room);dirty=true;}render();return;}
+  if(t.id==='eUnit'){E.unit=t.value;preview();return;}
+  if(t.id==='eBoth'||t.id==='eRe'||t.id==='eLe'){E[t.id.slice(1).toLowerCase()]=+t.value;preview();return;}
+  if(t.id==='eGl'){E.glasses=t.checked;return;}
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='eName')E.name=t.value;
+  if(t.id==='eDist'){E.dist=t.value;preview();}
+  if(t.id==='eEcm'){E.echo=t.value;preview();}
+});
+window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue='';}});
+window.__eye={S:function(){return S;},eyeAcuity:eyeAcuity,eyeRowMargin:eyeRowMargin,eyeLevel:eyeLevel};
+render();
+})();
+</script>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/he.js"></script>
+<script>I18N.start();</script>
+</body>
+</html>

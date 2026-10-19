@@ -1,0 +1,1875 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Seat Planner · Teacher Tools</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Secular+One&display=swap">
+<style>
+/* Layout concept: the classroom seen from the back, chalkboard bar on top, desks as draggable tiles.
+   Beside it, one panel with Rules / Kids / Plans tabs. Palette: ink navy, pen blue, highlighter yellow, board green. */
+:root{
+  --paper:#EDF0F5; --sheet:#FFFFFF; --ink:#14213D; --ink-2:#56637C; --line:#D6DCE6;
+  --desk:#FFFFFF; --desk-edge:#C3CCDB;
+  --accent:#2B59D9; --accent-ink:#FFFFFF; --accent-soft:#E4EBFC;
+  --hl:#FFE066; --hl-ink:#3F3200;
+  --ok:#17835A; --ok-bg:#E3F4EC; --bad:#C8323F; --bad-bg:#FCE9EB;
+  --board:#24493E; --board-ink:#E7F1EC;
+  --want:#D99A00; --want-soft:#FFF3C9;
+  --f-display:'Secular One','Rubik','Segoe UI',system-ui,sans-serif;
+  --f-body:'Rubik','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1623; --sheet:#172033; --ink:#E8EDF7; --ink-2:#97A3BA; --line:#2B3750;
+    --desk:#1F2B44; --desk-edge:#0A0F1A;
+    --accent:#7FA2FF; --accent-ink:#0B1530; --accent-soft:#22305A;
+    --hl:#E5BF3A; --hl-ink:#1D1600;
+    --ok:#4CC38A; --ok-bg:#153A2B; --bad:#FF7A86; --bad-bg:#3B1F27;
+    --board:#1B3A31; --board-ink:#DDEBE4;
+    --want:#FFD34D; --want-soft:#4A3B0B;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1623; --sheet:#172033; --ink:#E8EDF7; --ink-2:#97A3BA; --line:#2B3750;
+  --desk:#1F2B44; --desk-edge:#0A0F1A;
+  --accent:#7FA2FF; --accent-ink:#0B1530; --accent-soft:#22305A;
+  --hl:#E5BF3A; --hl-ink:#1D1600;
+  --ok:#4CC38A; --ok-bg:#153A2B; --bad:#FF7A86; --bad-bg:#3B1F27;
+  --board:#1B3A31; --board-ink:#DDEBE4;
+  --want:#FFD34D; --want-soft:#4A3B0B;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--f-body); font-size:14px; line-height:1.4;
+  padding-block:18px 56px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:16px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font:400 28px/1.1 var(--f-display);margin:0;text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--ink-2);font-size:12px;min-height:16px}
+.hactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+
+.btn{font:500 13px var(--f-body);padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible,.pick button:focus-visible,.seg button:focus-visible,.x:focus-visible,.pin:focus-visible,.stepper button:focus-visible,.desk:focus-visible,select:focus-visible,input:focus-visible,.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input[type=text]{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);min-width:0}
+
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--line);color:var(--ink-2);background:var(--sheet)}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.pill.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+.status{display:flex;gap:6px;flex-wrap:wrap}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--sheet);overflow:hidden}
+.stepper .lbl{padding:0 8px;font-size:12px;color:var(--ink-2)}
+.stepper button{width:30px;height:32px;border:0;border-left:1px solid var(--line);background:none;color:var(--ink);font-size:16px;cursor:pointer}
+.stepper b{min-width:28px;text-align:center;font-variant-numeric:tabular-nums}
+
+.count{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.count .n{font:400 30px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.count .n.zero{color:var(--bad)}
+.count .l{font-weight:500}
+.count .s{flex-basis:100%;font-size:12px;color:var(--ink-2)}
+.count .s button{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);padding:0;cursor:pointer;text-decoration:underline}
+.board{background:var(--board);color:var(--board-ink);text-align:center;border-radius:6px;padding:7px;margin:0 auto 14px;width:min(70%,420px);font:400 13px var(--f-display);letter-spacing:.1em;box-shadow:inset 0 -3px 0 rgba(0,0,0,.28)}
+.room{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:10px}
+.desk{position:relative;min-height:72px;border:1.5px dashed var(--desk-edge);border-radius:8px;display:grid;place-items:center;padding:4px;cursor:pointer;transition:background .12s,border-color .12s}
+.desk.has{border-style:solid;background:var(--desk);box-shadow:0 3px 0 var(--desk-edge)}
+.desk.bad{border-color:var(--bad);background:var(--bad-bg)}
+.desk.sel{outline:3px solid var(--hl);outline-offset:1px}
+.desk.drop{border-color:var(--accent);background:var(--accent-soft);border-style:solid}
+.desk.rf,.tray .chip.rf{outline:2px solid var(--accent);outline-offset:1px}
+.desk .pos{font-size:11px;color:var(--ink-2);opacity:.75;font-variant-numeric:tabular-nums}
+.edge{margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+
+.chip{position:relative;width:100%;text-align:center;padding:6px 4px;border-radius:6px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;display:flex;flex-direction:column;align-items:center;gap:1px}
+.chip .nm{font-weight:600;font-size:17px;line-height:1.15;overflow-wrap:anywhere}
+.chip .alt{font-size:11px;color:var(--ink-2);overflow-wrap:anywhere}
+.chip.sel{background:var(--hl);color:var(--hl-ink)}
+.chip.sel .alt{color:var(--hl-ink)}
+.chip.dragging{opacity:.3}
+.chip .warn{position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--bad);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center}
+.pin{position:absolute;top:1px;right:1px;width:24px;height:24px;display:grid;place-items:center;border:0;background:transparent;color:var(--ink-2);opacity:0;cursor:pointer;border-radius:5px;padding:0}
+.desk:hover .pin,.tray .chip:hover .pin,.pin:focus-visible,.pin[aria-pressed="true"]{opacity:1}
+.pin[aria-pressed="true"]{color:var(--accent)}
+@media (hover:none){.pin{opacity:.6}}
+.ghost{position:fixed;left:0;top:0;z-index:100;pointer-events:none;background:var(--hl);color:var(--hl-ink);box-shadow:0 12px 26px rgba(0,0,0,.28);border-radius:8px;cursor:grabbing}
+.ghost .alt{color:var(--hl-ink)}
+.ghost .pin,.ghost .warn{display:none}
+body.is-dragging{cursor:grabbing}
+
+.desk.wz{background:var(--want-soft);border-color:var(--want);border-style:solid}
+.desk.wz.has{box-shadow:inset 0 0 0 2px var(--want),0 3px 0 var(--desk-edge)}
+.chip .wdot{position:absolute;right:6px;bottom:5px;width:11px;height:11px;border-radius:50%;background:var(--want);box-shadow:0 0 0 2px var(--sheet)}
+.chip .wdot.must{background:var(--bad)}
+.desk.has .chip .wdot{box-shadow:0 0 0 2px var(--desk)}
+.pill.want{background:var(--want-soft);color:var(--ink);border-color:var(--want)}
+.badge.warn{background:var(--want);color:#1D1600}
+.dot.want{background:var(--want);color:#1D1600}
+.wants .want{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:11px 6px;border-top:1px solid var(--line);border-radius:6px}
+.wants .want.off .wtext{opacity:.5}
+.wtext{min-width:0;line-height:1.6}
+.wmeta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--ink-2)}
+.wnow{font-size:12px;color:var(--ink-2)}
+.desk.hole{visibility:hidden;min-height:72px}
+.room.editing .desk{cursor:pointer}
+.room.editing .desk.hole.edit{visibility:visible;border:1.5px dotted var(--desk-edge);background:none;opacity:.7}
+.room.editing .desk.has{border-style:dashed}
+.room.editing .pin{display:none}
+.room.editing .chip{pointer-events:none}
+.desk .rm{position:absolute;top:1px;right:6px;font-size:16px;line-height:1;color:var(--bad);font-weight:600}
+.layoutbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--accent);border-radius:10px;background:var(--accent-soft);font-size:13px}
+.layoutbar[hidden]{display:none}
+.mini span.hole{visibility:hidden}
+.eyecard{border-top:1px solid var(--line);padding:11px 6px}
+.rowstrip{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.lv{padding:3px 8px;border-radius:8px;font-size:12px;border:1px solid transparent;text-align:center}
+.lv small{display:block;font-size:11px;opacity:.85}
+.lv.easy,.lv.ok{background:var(--ok-bg);color:var(--ok)}
+.lv.ok{opacity:.85}
+.lv.hard{background:var(--want-soft);color:var(--ink);border-color:var(--want)}
+.lv.vhard,.lv.no{background:var(--bad-bg);color:var(--bad)}
+.lv.here{outline:2px solid var(--ink);outline-offset:1px}
+.chip .edot{position:absolute;left:4px;bottom:3px;width:14px;height:14px;display:block}
+.chip .edot.hard{color:var(--want)}
+.chip .edot.vhard,.chip .edot.no{color:var(--bad)}
+.roomrow{display:flex;flex-wrap:wrap;gap:8px 14px}
+.roomrow input{width:5em}
+.sugg{margin-top:6px;font-size:12px;color:var(--ink-2)}
+.sugg b{color:var(--ink)}
+.seg button.sug::after{content:"\2605";margin-left:4px;font-size:10px}
+.pri{display:inline-block;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.7}
+.pri.must{background:var(--ink);color:var(--paper)}
+.pri.high{background:var(--accent);color:var(--accent-ink)}
+.pri.med{background:var(--accent-soft);color:var(--ink)}
+.pri.low{background:var(--line);color:var(--ink)}
+.linkbtn{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);padding:2px 4px;cursor:pointer;border-radius:5px}
+.trayhead{margin:16px 0 6px;font:400 14px var(--f-display);color:var(--ink-2)}
+.tray{padding:10px;border:1.5px dashed var(--line);border-radius:10px;min-height:58px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tray.drop{border-color:var(--accent);background:var(--accent-soft)}
+.tray .chip{width:auto;min-width:80px;background:var(--desk);border:1px solid var(--desk-edge);box-shadow:0 2px 0 var(--desk-edge);padding:6px 14px}
+.tray .chip.sel{background:var(--hl)}
+.tray .empty{color:var(--ink-2);font-size:12px}
+.hint{margin:12px 0 0;color:var(--ink-2);font-size:12px}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:-4px -4px 14px;padding:0 4px;overflow-x:auto}
+.tab{padding:9px 12px;border:0;background:none;font:500 14px var(--f-body);color:var(--ink-2);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--line);color:var(--ink);font-size:11px;text-align:center}
+.badge.bad{background:var(--bad);color:#fff}
+h2{font:400 16px var(--f-display);margin:0 0 8px}
+.muted{color:var(--ink-2);font-size:12px}
+
+.builder{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);display:grid;gap:10px;margin-bottom:12px}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);font:500 12px var(--f-body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.fl{font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);font:500 13px var(--f-body);cursor:pointer}
+.pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pick button small{font-weight:400;opacity:.7;margin-left:3px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.rules{list-style:none;margin:0;padding:0}
+.rule{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:11px 6px;border-top:1px solid var(--line);border-radius:6px}
+.rule.hl{background:var(--accent-soft)}
+.rule.off .rtext{opacity:.5}
+.dot{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--line);color:var(--ink-2);margin-top:1px}
+.dot.ok{background:var(--ok-bg);color:var(--ok)}
+.dot.bad{background:var(--bad);color:#fff}
+.rtext{min-width:0;line-height:1.7}
+.k{display:inline-block;padding:0 8px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-weight:500;line-height:1.6}
+.why{color:var(--bad);font-size:12px;line-height:1.5}
+.mode{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:2px;flex-wrap:wrap}
+.mode select{padding:3px 6px;font-size:12px}
+.ract{display:flex;gap:6px;align-items:flex-start}
+.x{width:26px;height:26px;border:0;background:transparent;color:var(--ink-2);border-radius:6px;cursor:pointer;display:grid;place-items:center;padding:0}
+.x:hover{background:var(--bad-bg);color:var(--bad)}
+.sw{position:relative;display:inline-block;width:34px;height:20px;margin-top:3px}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:10px;background:var(--line);transition:background .12s;pointer-events:none}
+.sw span::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--sheet);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .12s}
+.sw input:checked + span{background:var(--accent)}
+.sw input:checked + span::after{transform:translateX(14px)}
+.sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+.kidrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-bottom:6px}
+.kidrow input{width:100%}
+.addkid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.plan{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper);display:grid;gap:6px;min-width:0}
+.plan input.pname{font-weight:500;padding:3px 6px;width:100%;border-color:transparent;background:transparent}
+.plan input.pname:hover,.plan input.pname:focus{border-color:var(--line);background:var(--sheet)}
+.mini{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:3px;cursor:pointer}
+.mini span{font-size:10px;padding:4px 1px;text-align:center;background:var(--desk);border:1px solid var(--desk-edge);border-radius:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px}
+.plan .meta{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:12px}
+.plan .st.ok{color:var(--ok)}
+.plan .st.bad{color:var(--bad)}
+.plan .links{display:flex;gap:2px}
+.plan .links button{border:0;background:none;color:var(--accent);font:500 12px var(--f-body);cursor:pointer;padding:2px 6px;border-radius:5px}
+.plan .links button.del{color:var(--bad)}
+.sect{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+
+.toasts{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));pointer-events:none;z-index:200}
+.toast{pointer-events:auto;background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.28);max-width:min(520px,100%)}
+.tbtn{background:none;border:0;color:var(--hl);font:600 13px var(--f-body);cursor:pointer;padding:2px 4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.back{display:inline-block;margin-bottom:6px;color:var(--accent);font:500 13px var(--f-body);text-decoration:none}
+.back:hover{text-decoration:underline}
+html[dir=rtl] .room,html[dir=rtl] .board,html[dir=rtl] .mini,html[dir=rtl] .stepper{direction:ltr}
+html[dir=rtl] .board bdi,html[dir=rtl] .stepper .lbl{direction:rtl}
+html[dir=rtl] input[type=number]{direction:ltr;text-align:right}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <a class="back" href="../">&larr; Teacher Tools</a>
+      <h1>Class Seat Planner</h1>
+      <p class="sub" id="saveState"></p>
+    </div>
+    <div class="hactions">
+      <div id="status" class="status" aria-live="polite"></div>
+      <button class="btn" id="undoBtn" type="button">Undo</button>
+      <button class="btn" type="button" data-lang-toggle data-notr>עברית</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="card" aria-label="Classroom">
+      <div class="count" id="count"></div>
+      <div class="toolbar">
+        <div class="stepper" role="group" aria-label="Rows"><span class="lbl">Rows</span><button type="button" data-step="rows:-1" aria-label="Fewer rows">&minus;</button><b id="rowsV">3</b><button type="button" data-step="rows:1" aria-label="More rows">+</button></div>
+        <div class="stepper" role="group" aria-label="Columns"><span class="lbl">Columns</span><button type="button" data-step="cols:-1" aria-label="Fewer columns">&minus;</button><b id="colsV">3</b><button type="button" data-step="cols:1" aria-label="More columns">+</button></div>
+        <button class="btn primary" id="autoBtn" type="button">Auto-arrange</button>
+        <button class="btn" id="clearBtn" type="button" title="Move everyone except pinned kids out of the desks">Clear</button>
+        <button class="btn" id="saveBtn" type="button">Save as plan</button>
+        <button class="btn" id="layoutBtn" type="button" aria-pressed="false" title="Remove desks or add extra tables to change the room shape">Edit layout</button>
+      </div>
+      <div class="layoutbar" id="layoutBar" hidden><span>Tap a desk to remove it, or an empty spot to add one. Use Rows and Columns to make the room bigger.</span><button class="btn" id="resetLayout" type="button">Reset layout</button></div>
+      <div class="board">BOARD &middot; <bdi>לוח</bdi></div>
+      <div id="room" class="room"></div>
+      <p class="edge">Back of the room</p>
+      <div class="trayhead">Not seated</div>
+      <div id="tray" class="tray" data-tray="1"></div>
+      <p class="hint">Drag a kid onto a desk, or tap a kid and then a desk. The pin on a desk keeps that kid in place when you auto-arrange. A yellow dot on a kid means their want is not met yet (red if it is a must).</p>
+    </section>
+
+    <aside class="card" aria-label="Rules, kids and plans">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabRules" data-tab="rules" aria-selected="true">Rules<span class="badge" id="badgeRules"></span></button>
+        <button class="tab" role="tab" id="tabWants" data-tab="wants" aria-selected="false">Wants<span class="badge" id="badgeWants"></span></button>
+        <button class="tab" role="tab" id="tabEyes" data-tab="eyes" aria-selected="false">Eyes<span class="badge" id="badgeEyes"></span></button>
+        <button class="tab" role="tab" id="tabKids" data-tab="kids" aria-selected="false">Kids<span class="badge" id="badgeKids"></span></button>
+        <button class="tab" role="tab" id="tabPlans" data-tab="plans" aria-selected="false">Plans<span class="badge" id="badgePlans"></span></button>
+      </div>
+      <div id="paneRules" role="tabpanel" aria-labelledby="tabRules">
+        <div id="builder" class="builder"></div>
+        <ul id="ruleList" class="rules"></ul>
+      </div>
+      <div id="paneWants" role="tabpanel" aria-labelledby="tabWants" hidden></div>
+      <div id="paneEyes" role="tabpanel" aria-labelledby="tabEyes" hidden></div>
+      <div id="paneKids" role="tabpanel" aria-labelledby="tabKids" hidden></div>
+      <div id="panePlans" role="tabpanel" aria-labelledby="tabPlans" hidden></div>
+    </aside>
+  </div>
+</div>
+<div class="toasts" aria-live="polite"><div id="toast" class="toast" hidden></div></div>
+<input type="file" id="impFile" accept=".json,application/json" hidden>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+var MODES={
+  side:'side by side only',
+  ortho:'side by side or front/back',
+  diag:'any direction, diagonals too',
+  two:'within 2 seats'
+};
+var ZONES={
+  front:'front row', front2:'front two rows', mid:'middle rows', back2:'back two rows',
+  back:'back row', left:'left column', center:'middle columns', right:'right column'
+};
+var LS='class-seat-planner-v1';
+var WHY={
+  health:{label:'Health, sight or hearing',pri:'must'},
+  focus:{label:'Focus or distraction',pri:'high'},
+  behavior:{label:'Behavior support',pri:'high'},
+  conflict:{label:'Doesn\u2019t get along',pri:'high'},
+  friends:{label:'Friends or social',pri:'med'},
+  prefers:{label:'Just prefers it',pri:'low'},
+  other:{label:'Other',pri:'med'}
+};
+var PRI={
+  must:{label:'Must',w:0,hint:'Auto-arrange always honors this. If that is impossible it tells you which rule is in the way.'},
+  high:{label:'High',w:16,hint:'Auto-arrange tries hard. A High want beats several Medium and Low wants.'},
+  med:{label:'Medium',w:4,hint:'Granted unless it costs a High want.'},
+  low:{label:'Low',w:1,hint:'Nice to have. Granted when nothing more important is in the way.'}
+};
+var PRI_ORDER=['must','high','med','low'];
+var PIN_SVG='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M9.5 1.5l5 5-1.8.6-2.6 2.6.2 3.3-1 1-3-3-4 4-.7-.7 4-4-3-3 1-1 3.3.2 2.6-2.6z" fill="currentColor"/></svg>';
+var X_SVG='<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
+
+/* ---------- starter data (the class from the chat) ---------- */
+var KIDS0=[['s1','Student 1',''],['s2','Student 2',''],['s3','Student 3',''],['s4','Student 4',''],['s5','Student 5',''],['s6','Student 6',''],['s7','Student 7',''],['s8','Student 8',''],['s9','Student 9','']];
+var PLANS0=[
+ 's1 s8 s6 s2 s7 s4 s5 s3 s9',
+ 's6 s2 s1 s4 s8 s7 s9 s3 s5',
+ 's1 s2 s6 s7 s8 s4 s5 s3 s9',
+ 's1 s7 s6 s8 s2 s4 s5 s3 s9',
+ 's6 s7 s1 s4 s2 s8 s9 s3 s5',
+ 's1 s8 s3 s2 s7 s4 s5 s6 s9',
+ 's1 s2 s4 s8 s7 s3 s9 s6 s5',
+ 's4 s7 s1 s3 s8 s2 s5 s6 s9',
+ 's1 s7 s4 s2 s8 s6 s9 s3 s5',
+ 's3 s8 s1 s4 s7 s2 s9 s6 s5'
+];
+function defaultState(){
+  return {
+    v:1, rows:3, cols:3,
+    kids:KIDS0.map(function(k){return {id:k[0],name:k[1],alt:k[2]};}),
+    seats:PLANS0[0].split(' '),
+    pinned:[],
+    wants:[],
+    holes:[],eyes:[],room:{unit:'m',tile:60,front:2.5,gap:1,letter:5},
+    rules:[
+      {id:'r1',type:'apart',as:['s1'],bs:['s6','s4','s3','s5'],mode:'diag',on:true},
+      {id:'r2',type:'apart',as:['s5'],bs:['s9','s4'],mode:'diag',on:true},
+      {id:'r3',type:'zone',kids:['s9','s5'],zone:'back',not:false,on:true},
+      {id:'r4',type:'zone',kids:['s7'],zone:'back',not:true,on:true}
+    ],
+    plans:PLANS0.map(function(s,i){return {id:'p'+i,name:'Plan '+(i+1),rows:3,cols:3,seats:s.split(' ')};})
+  };
+}
+
+/* ---------- validation of loaded / imported state ---------- */
+function cleanHoles(arr,n){
+  var seen={},out=[];
+  (Array.isArray(arr)?arr:[]).forEach(function(x){x=x|0;if(x>=0&&x<n&&!seen[x]){seen[x]=1;out.push(x);}});
+  return out.sort(function(a,b){return a-b;});
+}
+function holeMap(st){var m={};(st.holes||[]).forEach(function(i){m[i]=1;});return m;}
+function deskCount(st){return st.rows*st.cols-(st.holes||[]).length;}
+function noHoles(seats,holes){var m={};holes.forEach(function(i){m[i]=1;});return seats.map(function(x,i){return m[i]?null:x;});}
+function cleanSeats(arr,n,ids){
+  var seen={},out=[];
+  arr=Array.isArray(arr)?arr:[];
+  for(var i=0;i<n;i++){var x=arr[i];if(x&&ids[x]&&!seen[x]){seen[x]=1;out.push(x);}else out.push(null);}
+  return out;
+}
+function cleanRule(r,ids){
+  if(!r||typeof r!=='object')return null;
+  var f=function(a){return (Array.isArray(a)?a:[]).filter(function(x){return ids[x];});};
+  var base={id:String(r.id||('r'+uid())),on:r.on!==false};
+  if(r.type==='apart'||r.type==='near'){
+    var as=f(r.as),bs=f(r.bs);if(!as.length||!bs.length)return null;
+    return {id:base.id,on:base.on,type:r.type,as:as,bs:bs,mode:MODES[r.mode]?r.mode:'diag'};
+  }
+  if(r.type==='zone'){
+    var ks=f(r.kids);if(!ks.length||!ZONES[r.zone])return null;
+    return {id:base.id,on:base.on,type:'zone',kids:ks,zone:r.zone,not:!!r.not};
+  }
+  if(r.type==='seat'){
+    if(!ids[r.kid])return null;
+    return {id:base.id,on:base.on,type:'seat',kid:r.kid,r:clamp(r.r|0,0,9),c:clamp(r.c|0,0,9)};
+  }
+  return null;
+}
+function cleanWant(w,ids){
+  if(!w||typeof w!=='object'||!ids[w.kid])return null;
+  if(['seat','row','rows','col','zone','apart'].indexOf(w.kind)<0)return null;
+  if(w.kind==='apart'&&(!ids[w.other]||w.other===w.kid))return null;
+  return {id:String(w.id||('w'+uid())),kid:w.kid,kind:w.kind,r:clamp(w.r|0,0,9),c:clamp(w.c|0,0,9),
+    other:w.kind==='apart'?w.other:'',mode:MODES[w.mode]?w.mode:'diag',
+    zone:ZONES[w.zone]?w.zone:'front',why:WHY[w.why]?w.why:'other',
+    note:typeof w.note==='string'?w.note.slice(0,200):'',pri:PRI[w.pri]?w.pri:'med',on:w.on!==false};
+}
+var EYE_LINES=[200,100,80,63,50,40,32,25,20],E_PRINT_CM=4.4,CHART_FT=10;
+var LEVELS={easy:{k:'easy',label:'Easy'},ok:{k:'ok',label:'Fine'},hard:{k:'hard',label:'Hard'},vhard:{k:'vhard',label:'Very hard'},no:{k:'no',label:'Can\u2019t read'}};
+function cleanRoom(r){
+  r=r&&typeof r==='object'?r:{};
+  var f=function(v,d,a,b){v=parseFloat(v);return isFinite(v)?clamp(v,a,b):d;};
+  var unit=r.unit==='tile'?'tile':'m';
+  return {unit:unit,tile:f(r.tile,60,10,200),front:f(r.front,unit==='tile'?4:2.5,0.5,60),gap:f(r.gap,unit==='tile'?2:1,0.3,10),letter:f(r.letter,5,1,30)};
+}
+function cleanEyes(arr,ids){
+  var seen={};
+  return (Array.isArray(arr)?arr:[]).map(function(e){
+    if(!e||typeof e!=='object'||!ids[e.kid]||seen[e.kid])return null;
+    var d=parseFloat(e.dist),ec=parseFloat(e.echo),L=function(v){v=v|0;return v>=1&&v<=9?v:0;};
+    if(!(d>0))return null;
+    var o={kid:e.kid,dist:clamp(d,0.3,30),unit:e.unit==='ft'?'ft':(e.unit==='tile'?'tile':'m'),echo:ec>0?clamp(ec,0.5,200):0,glasses:!!e.glasses,both:L(e.both),re:L(e.re),le:L(e.le)};
+    if(!(o.both||o.re||o.le))return null;
+    seen[e.kid]=1;return o;
+  }).filter(Boolean);
+}
+function normalize(o){
+  try{
+    if(!o||typeof o!=='object')return null;
+    var rows=clamp(+o.rows||3,1,10),cols=clamp(+o.cols||3,1,10);
+    var kids=(Array.isArray(o.kids)?o.kids:[]).filter(function(k){return k&&k.id&&typeof k.name==='string';}).map(function(k){return {id:String(k.id),name:k.name,alt:typeof k.alt==='string'?k.alt:''};});
+    var ids={};kids.forEach(function(k){ids[k.id]=1;});
+    var holes=cleanHoles(o.holes,rows*cols);
+    var plans=(Array.isArray(o.plans)?o.plans:[]).map(function(p){
+      if(!p||typeof p!=='object')return null;
+      var pr=clamp(+p.rows||rows,1,10),pc=clamp(+p.cols||cols,1,10),ph=cleanHoles(p.holes,pr*pc);
+      return {id:String(p.id||('p'+uid())),name:String(p.name||'Plan'),rows:pr,cols:pc,holes:ph,seats:noHoles(cleanSeats(p.seats,pr*pc,ids),ph)};
+    }).filter(Boolean);
+    return {
+      v:1,rows:rows,cols:cols,kids:kids,
+      holes:holes,seats:noHoles(cleanSeats(o.seats,rows*cols,ids),holes),
+      pinned:(Array.isArray(o.pinned)?o.pinned:[]).filter(function(x){return ids[x];}),
+      rules:(Array.isArray(o.rules)?o.rules:[]).map(function(r){return cleanRule(r,ids);}).filter(Boolean),
+      wants:(function(){var seen={},per={};return (Array.isArray(o.wants)?o.wants:[]).map(function(w){return cleanWant(w,ids);}).filter(function(w){if(!w||seen[w.id])return false;per[w.kid]=(per[w.kid]||0)+1;if(per[w.kid]>8)return false;seen[w.id]=1;return true;});})(),
+      eyes:cleanEyes(o.eyes,ids),room:cleanRoom(o.room),
+      plans:plans
+    };
+  }catch(e){return null;}
+}
+
+/* ---------- rule engine ---------- */
+function posMap(seats,cols){var m={};for(var i=0;i<seats.length;i++){if(seats[i])m[seats[i]]={r:Math.floor(i/cols),c:i%cols};}return m;}
+function closeTo(p,q,mode){
+  var dr=Math.abs(p.r-q.r),dc=Math.abs(p.c-q.c);
+  if(mode==='side')return dr===0&&dc===1;
+  if(mode==='ortho')return dr+dc===1;
+  if(mode==='two')return Math.max(dr,dc)<=2&&(dr+dc)>0;
+  return Math.max(dr,dc)===1;
+}
+function inZone(p,z,rows,cols){
+  switch(z){
+    case 'front':return p.r===0;
+    case 'front2':return p.r<=1;
+    case 'mid':return p.r>0&&p.r<rows-1;
+    case 'back2':return p.r>=rows-2;
+    case 'back':return p.r===rows-1;
+    case 'left':return p.c===0;
+    case 'center':return p.c>0&&p.c<cols-1;
+    case 'right':return p.c===cols-1;
+  }
+  return false;
+}
+function inTarget(p,w,rows,cols){
+  if(w.kind==='rows')return p.r<=w.r;
+  if(w.kind==='seat')return p.r===w.r&&p.c===w.c;
+  if(w.kind==='row')return p.r===w.r;
+  if(w.kind==='col')return p.c===w.c;
+  return inZone(p,w.zone,rows,cols);
+}
+function targetText(w,rows){
+  if(w.kind==='apart')return 'not to sit next to '+kname(w.other)+(w.mode&&w.mode!=='diag'?' ('+MODES[w.mode]+')':'');
+  if(w.kind==='rows')return w.r===0?'row 1 (front)':'rows 1 to '+(w.r+1);
+  if(w.kind==='seat')return 'row '+(w.r+1)+', column '+(w.c+1);
+  if(w.kind==='row')return 'row '+(w.r+1)+(w.r===0?' (front)':(w.r===rows-1?' (back)':''))+', any chair';
+  if(w.kind==='col')return 'column '+(w.c+1)+', any row';
+  return 'the '+ZONES[w.zone];
+}
+function wantKids(w){return w.kind==='apart'?[w.kid,w.other]:[w.kid];}
+function wantRule(w){
+  if(w.kind==='apart')return {id:'w:'+w.id,type:'apart',as:[w.kid],bs:[w.other],mode:w.mode||'diag',on:true};
+  return {id:'w:'+w.id,type:'want',kid:w.kid,kind:w.kind,r:w.r,c:w.c,zone:w.zone,on:true};
+}
+function hardRules(st,all){
+  var rs=st.rules.filter(function(r){return r.on;});
+  (st.wants||[]).forEach(function(w){if(w.on&&(all||w.pri==='must'))rs.push(wantRule(w));});
+  return rs;
+}
+function wantStatus(w,pos,rows,cols){
+  var p=pos[w.kid];
+  if(!p)return 'pending';
+  if(w.kind==='apart'){
+    var q=pos[w.other];
+    if(!q)return 'pending';
+    return closeTo(p,q,w.mode||'diag')?'unmet':'met';
+  }
+  return inTarget(p,w,rows,cols)?'met':'unmet';
+}
+function kidsOf(r){
+  if(r.type==='apart'||r.type==='near')return r.as.concat(r.bs);
+  if(r.type==='zone')return r.kids.slice();
+  return [r.kid];
+}
+function evalRule(r,pos,rows,cols){
+  var res={s:'ok',bad:[]},unplaced=false,i,j,a,b,p,q;
+  if(r.type==='apart'){
+    var seen={};
+    for(i=0;i<r.as.length;i++)for(j=0;j<r.bs.length;j++){
+      a=r.as[i];b=r.bs[j];if(a===b)continue;
+      p=pos[a];q=pos[b];
+      if(!p||!q){unplaced=true;continue;}
+      if(closeTo(p,q,r.mode)){var key=[a,b].sort().join('|');if(!seen[key]){seen[key]=1;res.bad.push([a,b]);}}
+    }
+  }else if(r.type==='near'){
+    for(i=0;i<r.as.length;i++){
+      a=r.as[i];p=pos[a];
+      if(!p){unplaced=true;continue;}
+      var any=false,missing=false;
+      for(j=0;j<r.bs.length;j++){
+        b=r.bs[j];if(b===a)continue;q=pos[b];
+        if(!q){missing=true;continue;}
+        if(closeTo(p,q,r.mode))any=true;
+      }
+      if(any)continue;
+      if(missing){unplaced=true;continue;}
+      res.bad.push([a]);
+    }
+  }else if(r.type==='zone'){
+    for(i=0;i<r.kids.length;i++){
+      p=pos[r.kids[i]];
+      if(!p){unplaced=true;continue;}
+      if(inZone(p,r.zone,rows,cols)===!!r.not)res.bad.push([r.kids[i]]);
+    }
+  }else if(r.type==='seat'){
+    p=pos[r.kid];
+    if(!p)unplaced=true;
+    else if(p.r!==r.r||p.c!==r.c)res.bad.push([r.kid]);
+  }else if(r.type==='want'){
+    p=pos[r.kid];
+    if(!p)unplaced=true;
+    else if(!inTarget(p,r,rows,cols))res.bad.push([r.kid]);
+  }
+  res.s=res.bad.length?'bad':(unplaced?'pending':'ok');
+  return res;
+}
+function evalAll(seats,rows,cols,rules){
+  var pos=posMap(seats,cols),badKids={},map={},list=[];
+  rules.forEach(function(r){
+    var res=evalRule(r,pos,rows,cols);
+    list.push({rule:r,res:res});map[r.id]=res;
+    if(r.on&&res.s==='bad')res.bad.forEach(function(g){g.forEach(function(id){badKids[id]=1;});});
+  });
+  return {list:list,map:map,badKids:badKids};
+}
+
+/* ---------- solver ---------- */
+var TIMEOUT={t:1};
+function solve(st,budget,skipRuleId){
+  var rows=st.rows,cols=st.cols,n=rows*cols,kids=st.kids,hmap=holeMap(st);
+  if(kids.length>deskCount(st))return null;
+  var rs=hardRules(st).filter(function(r){return r.id!==skipRuleId;});
+  var involve={};kids.forEach(function(k){involve[k.id]=[];});
+  rs.forEach(function(r){kidsOf(r).forEach(function(id){if(involve[id])involve[id].push(r);});});
+  var pos={},used=[],i;
+  for(i=0;i<n;i++)used.push(!!hmap[i]);
+  var pinnedSet={};
+  (st.pinned||[]).forEach(function(id){
+    var s=st.seats.indexOf(id);
+    if(s>=0&&involve[id]){pinnedSet[id]=1;pos[id]={r:Math.floor(s/cols),c:s%cols};used[s]=true;}
+  });
+  function consistent(id){
+    var L=involve[id];
+    for(var k=0;k<L.length;k++){if(evalRule(L[k],pos,rows,cols).s==='bad')return false;}
+    return true;
+  }
+  for(var pid in pinnedSet){if(!consistent(pid))return null;}
+  var order=kids.map(function(k){return {id:k.id,w:involve[k.id].length+Math.random()*0.6};})
+    .filter(function(o){return !pinnedSet[o.id];})
+    .sort(function(a,b){return b.w-a.w;})
+    .map(function(o){return o.id;});
+  var nodes=0,deadline=performance.now()+budget;
+  function rec(idx){
+    if(idx===order.length)return true;
+    nodes++;
+    if(nodes>300000||((nodes&127)===0&&performance.now()>deadline))throw TIMEOUT;
+    var id=order[idx],free=[];
+    for(var s=0;s<n;s++)if(!used[s])free.push(s);
+    shuffle(free);
+    for(var t=0;t<free.length;t++){
+      var s2=free[t];
+      used[s2]=true;pos[id]={r:Math.floor(s2/cols),c:s2%cols};
+      if(consistent(id)&&rec(idx+1))return true;
+      delete pos[id];used[s2]=false;
+    }
+    return false;
+  }
+  var ok;
+  try{ok=rec(0);}catch(e){if(e===TIMEOUT)return null;throw e;}
+  if(!ok)return null;
+  var seats=[];for(i=0;i<n;i++)seats.push(null);
+  for(var id2 in pos)seats[pos[id2].r*cols+pos[id2].c]=id2;
+  return seats;
+}
+var DONE={d:1};
+/* Like solve(), but also maximises the weight of granted wants (Must wants are hard rules). */
+function solveBest(st,budget){
+  var rows=st.rows,cols=st.cols,n=rows*cols,kids=st.kids,i,hmap=holeMap(st);
+  if(kids.length>deskCount(st))return null;
+  var rs=hardRules(st);
+  var involve={};kids.forEach(function(k){involve[k.id]=[];});
+  rs.forEach(function(r){kidsOf(r).forEach(function(id){if(involve[id])involve[id].push(r);});});
+  var softs=[],softW={};
+  (st.wants||[]).forEach(function(w){
+    if(!w.on||w.pri==='must')return;
+    var ks=wantKids(w);
+    if(!ks.every(function(id){return involve[id];}))return;
+    var sf={w:w,wt:PRI[w.pri].w,kids:ks,at:-1};
+    softs.push(sf);
+    ks.forEach(function(id){softW[id]=(softW[id]||0)+sf.wt;});
+  });
+  var pos={},used=[];
+  for(i=0;i<n;i++)used.push(!!hmap[i]);
+  var pinnedSet={},score0=0;
+  (st.pinned||[]).forEach(function(id){
+    var s=st.seats.indexOf(id);
+    if(s>=0&&involve[id]){pinnedSet[id]=1;pos[id]={r:Math.floor(s/cols),c:s%cols};used[s]=true;}
+  });
+  function consistent(id){
+    var L=involve[id];
+    for(var k=0;k<L.length;k++){if(evalRule(L[k],pos,rows,cols).s==='bad')return false;}
+    return true;
+  }
+  for(var pid in pinnedSet){if(!consistent(pid))return null;}
+  var order=kids.filter(function(k){return !pinnedSet[k.id];}).map(function(k){
+    return {id:k.id,w:(softW[k.id]||0)*100+involve[k.id].length+Math.random()*0.6};
+  }).sort(function(a,b){return b.w-a.w;}).map(function(o){return o.id;});
+  var oidx={};order.forEach(function(id,j){oidx[id]=j;});
+  var byAt=order.map(function(){return [];});
+  softs.forEach(function(sf){
+    var d=-1;
+    sf.kids.forEach(function(id){if(!pinnedSet[id]&&oidx[id]>d)d=oidx[id];});
+    sf.at=d;
+    if(d>=0)byAt[d].push(sf);
+    else if(wantStatus(sf.w,pos,rows,cols)==='met')score0+=sf.wt;
+  });
+  var suffix=[],acc=0;
+  suffix[order.length]=0;
+  for(i=order.length-1;i>=0;i--){byAt[i].forEach(function(sf){acc+=sf.wt;});suffix[i]=acc;}
+  var target=score0+suffix[0],best=-1,bestSeats=null,nodes=0,deadline=performance.now()+budget;
+  function snapshot(){
+    var seats=[],k;for(k=0;k<n;k++)seats.push(null);
+    for(var id in pos)seats[pos[id].r*cols+pos[id].c]=id;
+    return seats;
+  }
+  function rec(idx,score){
+    if(idx===order.length){
+      if(score>best){best=score;bestSeats=snapshot();if(best>=target)throw DONE;}
+      return;
+    }
+    if(score+suffix[idx]<=best)return;
+    nodes++;
+    if(nodes>400000||((nodes&127)===0&&performance.now()>deadline))throw TIMEOUT;
+    var id=order[idx],cand=[],s,g;
+    for(s=0;s<n;s++){
+      if(used[s])continue;
+      used[s]=true;pos[id]={r:Math.floor(s/cols),c:s%cols};
+      if(consistent(id)){
+        g=0;
+        byAt[idx].forEach(function(sf){if(wantStatus(sf.w,pos,rows,cols)==='met')g+=sf.wt;});
+        cand.push({s:s,g:g});
+      }
+      delete pos[id];used[s]=false;
+    }
+    shuffle(cand);
+    cand.sort(function(a,b){return b.g-a.g;});
+    for(var t=0;t<cand.length;t++){
+      var s2=cand[t].s;
+      used[s2]=true;pos[id]={r:Math.floor(s2/cols),c:s2%cols};
+      rec(idx+1,score+cand[t].g);
+      delete pos[id];used[s2]=false;
+    }
+  }
+  try{rec(0,score0);}catch(e){if(e!==TIMEOUT&&e!==DONE)throw e;}
+  if(!bestSeats)return null;
+  var pm=posMap(bestSeats,cols);
+  var unmet=softs.filter(function(sf){return wantStatus(sf.w,pm,rows,cols)!=='met';}).map(function(sf){return sf.w;});
+  return {seats:bestSeats,score:best,max:target,unmet:unmet,hasSoft:softs.length>0};
+}
+function dist(a,b){var d=0;for(var i=0;i<a.length;i++)if(a[i]!==b[i])d++;return d;}
+function pickDiverse(pool,k,refs){
+  var chosen=[];
+  while(chosen.length<k&&pool.length){
+    var best=-1,bi=0;
+    for(var i=0;i<pool.length;i++){
+      var all=chosen.concat(refs),m=all.length?99:0;
+      for(var j=0;j<all.length;j++){if(all[j].length===pool[i].length)m=Math.min(m,dist(pool[i],all[j]));}
+      var score=m+Math.random()*0.5;
+      if(score>best){best=score;bi=i;}
+    }
+    chosen.push(pool.splice(bi,1)[0]);
+  }
+  return chosen;
+}
+
+/* ---------- counting valid arrangements ---------- */
+function permBig(n,k){
+  if(k<0||k>n)return 0n;
+  var r=1n;for(var i=0;i<k;i++)r*=BigInt(n-i);return r;
+}
+/* Counts seatings of the kids that appear in at least one active rule (plus pinned kids held in place).
+   Kids in no rule can take any leftover desks, so they only multiply the count. */
+function makeCounter(st,usePins,allWants){
+  var rows=st.rows,cols=st.cols,nSeats=rows*cols,kids=st.kids,hmap=holeMap(st),nDesks=deskCount(st);
+  var job={done:false,raw:0,mult:1n,total:0n,step:null,val:null};
+  job.val=function(){return BigInt(job.raw)*job.mult;};
+  if(kids.length>nDesks){job.done=true;job.mult=0n;return job;}
+  var rs=hardRules(st,allWants);
+  var involve={};kids.forEach(function(k){involve[k.id]=[];});
+  rs.forEach(function(r){kidsOf(r).forEach(function(id){if(involve[id])involve[id].push(r);});});
+  var pos={},seatOf={},used=[],i;
+  for(i=0;i<nSeats;i++)used.push(!!hmap[i]);
+  var pinnedIds=[],pinnedSet={};
+  if(usePins)(st.pinned||[]).forEach(function(id){
+    var s=st.seats.indexOf(id);
+    if(s>=0&&involve[id]){pinnedIds.push(id);pinnedSet[id]=1;seatOf[id]=s;pos[id]={r:Math.floor(s/cols),c:s%cols};used[s]=true;}
+  });
+  function consistent(id){
+    var L=involve[id];
+    for(var k=0;k<L.length;k++){if(evalRule(L[k],pos,rows,cols).s==='bad')return false;}
+    return true;
+  }
+  job.total=permBig(nDesks-pinnedIds.length,kids.length-pinnedIds.length);
+  for(i=0;i<pinnedIds.length;i++){if(!consistent(pinnedIds[i])){job.done=true;job.mult=0n;return job;}}
+  var order=kids.filter(function(k){return involve[k.id].length&&!pinnedSet[k.id];}).map(function(k){return k.id;})
+    .sort(function(a,b){return involve[b].length-involve[a].length;});
+  var free=kids.length-pinnedIds.length-order.length;
+  job.mult=permBig(nDesks-pinnedIds.length-order.length,free);
+  var n=order.length,idx=0,next=[0],ticks=0;
+  if(n===0){job.raw=1;job.done=true;return job;}
+  function place(id,s){used[s]=true;seatOf[id]=s;pos[id]={r:Math.floor(s/cols),c:s%cols};}
+  function unplace(id){used[seatOf[id]]=false;delete pos[id];delete seatOf[id];}
+  job.step=function(deadline){
+    while(idx>=0){
+      if(idx===n){job.raw++;idx--;if(idx>=0)unplace(order[idx]);continue;}
+      var id=order[idx],went=false;
+      while(next[idx]<nSeats){
+        var s=next[idx]++;
+        if(used[s])continue;
+        place(id,s);
+        if(consistent(id)){idx++;next[idx]=0;went=true;break;}
+        unplace(id);
+      }
+      if(!went){idx--;if(idx>=0)unplace(order[idx]);}
+      if(((++ticks)&63)===0&&performance.now()>deadline)return;
+    }
+    job.done=true;
+  };
+  return job;
+}
+var cnt={jobs:[],token:0,sig:'',timer:null,t0:0,capped:false};
+function countSig(){
+  return JSON.stringify([S.rows,S.cols,S.holes,S.kids.map(function(k){return k.id;}),S.rules.filter(function(r){return r.on;}),S.wants.filter(function(w){return w.on;}),S.pinned.map(function(id){return [id,S.seats.indexOf(id)];})]);
+}
+function updateCount(){
+  var sig=countSig();
+  if(sig===cnt.sig){renderCount();return;}
+  cnt.sig=sig;cnt.token++;clearTimeout(cnt.timer);cnt.capped=false;cnt.t0=performance.now();
+  var jobs=[makeCounter(S,false)];
+  jobs[0].tag='base';
+  if(S.pinned.some(function(id){return S.seats.indexOf(id)>=0;})){var jp=makeCounter(S,true);jp.tag='pins';jobs.push(jp);}
+  if(S.wants.some(function(w){return w.on&&w.pri!=='must';})){var jw=makeCounter(S,false,true);jw.tag='wants';jobs.push(jw);}
+  cnt.jobs=jobs;
+  runCount(cnt.token);
+}
+function runCount(tok){
+  if(tok!==cnt.token)return;
+  var all=true;
+  cnt.jobs.forEach(function(j){if(!j.done)j.step(performance.now()+6);if(!j.done)all=false;});
+  if(!all&&performance.now()-cnt.t0>6000){cnt.capped=true;all=true;}
+  renderCount();
+  if(!all)cnt.timer=setTimeout(function(){runCount(tok);},0);
+}
+function fmtBig(v){
+  var s=v.toString();
+  if(s.length>15)return s.charAt(0)+'.'+s.charAt(1)+'×10<sup>'+(s.length-1)+'</sup>';
+  return v.toLocaleString('en-US');
+}
+function pctText(v,total){
+  if(v===0n||total===0n)return '';
+  var p=Number(v)*100/Number(total);
+  return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p.toPrecision(2))+'%';
+}
+function renderCount(){
+  var el=$('#count');
+  if(!S.kids.length){el.innerHTML='<span class="l">Add kids to see how many arrangements are possible.</span>';return;}
+  var A=cnt.jobs[0],B=null,C=null;
+  cnt.jobs.forEach(function(j){if(j.tag==='pins')B=j;if(j.tag==='wants')C=j;});
+  if(!A)return;
+  var v=A.val(),open=!A.done,h;
+  if(!open){
+    h='<span class="n'+(v===0n?' zero':'')+'">'+fmtBig(v)+'</span><span class="l">possible '+(v===1n?'arrangement':'arrangements')+'</span>';
+  }else if(cnt.capped){
+    h='<span class="n">≥ '+fmtBig(v)+'</span><span class="l">possible arrangements (stopped counting, there are more)</span>';
+  }else{
+    h='<span class="n">'+fmtBig(v)+'+</span><span class="l">found so far, still counting…</span>';
+  }
+  if(!open){
+    if(S.kids.length>deskCount(S))h+='<span class="s">There are more kids than desks. Add a row or column.</span>';
+    else if(v===0n)h+='<span class="s">These rules can’t all be met. <button type="button" id="whyBtn">Which rule is the problem?</button></span>';
+    else h+='<span class="s">out of '+fmtBig(A.total)+' ways to seat '+S.kids.length+' kids'+(pctText(v,A.total)?' · '+pctText(v,A.total)+' pass your rules':'')+'</span>';
+  }
+  if(C){
+    if(C.done)h+='<span class="s">'+(C.val()===0n?'No arrangement meets every want. Auto-arrange favors the higher priorities.':fmtBig(C.val())+' of them also meet every want')+'</span>';
+    else h+='<span class="s">counting arrangements that meet every want…</span>';
+  }
+  if(B){
+    if(B.done)h+='<span class="s">'+fmtBig(B.val())+' with your pinned kids kept where they are'+(B.val()===0n?' (try unpinning one)':'')+'</span>';
+    else h+='<span class="s">counting with your pinned kids…</span>';
+  }
+  el.innerHTML=h;
+}
+
+/* ---------- state ---------- */
+var S=null,hist=[],dirty=false,DL=null,dbDoc=null,dbChecked=false;
+var KEYWORDS=[
+  {pri:'must',words:['glasses','eyesight','vision','hearing','deaf','wheelchair','crutch','medical','allerg','seizure','insulin','diabet','asthma','cochlear','משקפ','ראייה','שמיעה','רפוא','גלגלים','אלרג','התקף','סוכרת','אסתמה']},
+  {pri:'high',words:['distract','focus','adhd','disrupt','conflict','fight','bully','anxi','מוסח','ריכוז','מפריע','מריבה','חרד']}
+];
+function suggestPri(why,note){
+  var base=(WHY[why]||WHY.other).pri,rec=base,hit=null,t=String(note||'').toLowerCase();
+  if(t)KEYWORDS.forEach(function(g){
+    if(PRI_ORDER.indexOf(g.pri)>=PRI_ORDER.indexOf(rec))return;
+    for(var i=0;i<g.words.length;i++){if(t.indexOf(g.words[i])>=0){rec=g.pri;hit=g.pri;break;}}
+  });
+  return {pri:rec,base:base,hit:hit};
+}
+var UI={edit:false,w:{id:null,kid:'',kind:'row',r:0,c:0,zone:'front',other:'',mode:'diag',why:'prefers',note:'',pri:'low',priTouched:false},e:{kid:'',dist:'3',unit:'m',echo:'',glasses:false,both:0,re:0,le:0},wantFocus:null,tab:'rules',sel:null,b:{type:'apart',A:[],B:[],mode:'diag',not:false,zone:'back',r:0,c:0}};
+if(!S)S=defaultState();
+
+function snap(){hist.push(JSON.stringify(S));if(hist.length>60)hist.shift();}
+function mutate(fn,opts){snap();fn();dirty=true;changed(opts);}
+function changed(opts){renderAll(opts);scheduleSave();}
+function undo(){
+  var j=hist.pop();
+  if(!j){toast('Nothing to undo');return;}
+  S=JSON.parse(j);dirty=true;UI.sel=null;renderAll();scheduleSave();toast('Undone');
+}
+function kidMap(){var m={};S.kids.forEach(function(k){m[k.id]=k;});return m;}
+function kname(id){var k=kidMap()[id];return k?k.name:'?';}
+
+/* ---------- saving ---------- */
+var saveTimer=null,saving=false,pendingSave=false;
+function setSaveState(s){
+  var t={saving:'Saving…',synced:'Saved to your account',local:'Not saved automatically. Use Backup file on the Plans tab to keep your work.',error:'Could not reach account storage. Saved on this device.'}[s]||'';
+  $('#saveState').textContent=t;
+}
+function scheduleSave(){
+  setSaveState('local');
+  return;
+  setSaveState(dbDoc?'saving':(dbChecked?'local':''));
+  clearTimeout(saveTimer);saveTimer=setTimeout(flush,700);
+}
+function flush(){
+  if(!dbDoc)return;
+  if(saving){pendingSave=true;return;}
+  saving=true;
+  var body={v:1,json:JSON.stringify(S)};
+  dbDoc.set(body).then(function(){setSaveState('synced');},function(){setSaveState('error');}).then(function(){
+    saving=false;
+    if(pendingSave){pendingSave=false;flush();}
+  });
+}
+function initStore(){
+  DL=true;
+  $$('[data-needs-dl]').forEach(function(e){e.hidden=false;});
+  setSaveState('local');
+  window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue='';}});
+}
+function flushSoon(){setSaveState('saving');clearTimeout(saveTimer);saveTimer=setTimeout(flush,200);}
+
+/* ---------- toast ---------- */
+var toastT=null;
+function toast(msg,act){
+  var t=$('#toast');
+  t.innerHTML='<span>'+esc(msg)+'</span>'+(act?'<button type="button" class="tbtn" id="toastAct">'+esc(act.label)+'</button>':'');
+  t.hidden=false;clearTimeout(toastT);
+  toastT=setTimeout(function(){t.hidden=true;},act?6500:3500);
+  if(act){$('#toastAct').onclick=function(){act.fn();t.hidden=true;};}
+}
+
+/* ---------- rendering ---------- */
+var EV=null;
+function renderAll(opts){
+  opts=opts||{};
+  EV=evalAll(S.seats,S.rows,S.cols,S.rules);
+  var wp=posMap(S.seats,S.cols);
+  EV.wants=S.wants.map(function(w){return {w:w,s:w.on?wantStatus(w,wp,S.rows,S.cols):'off'};});
+  EV.wantByKid={};EV.wantById={};
+  EV.wants.forEach(function(x){EV.wantById[x.w.id]=x;wantKids(x.w).forEach(function(id){(EV.wantByKid[id]=EV.wantByKid[id]||[]).push(x);});});
+  computeEyeEV();
+  renderStatus();renderStage();renderRules(opts);
+  renderWants();renderEyes();
+  if(opts.skip!=='kids')renderKids();
+  if(opts.skip!=='plans')renderPlans();
+  var nb=EV.list.filter(function(x){return x.rule.on&&x.res.s==='bad';}).length;
+  var b=$('#badgeRules');b.textContent=nb?String(nb):String(S.rules.length);b.className='badge'+(nb?' bad':'');
+  var wu=EV.wants.filter(function(x){return x.s==='unmet';}).length;
+  var bw=$('#badgeWants');bw.textContent=wu?String(wu):String(S.wants.length);bw.className='badge'+(wu?' warn':'');
+  var be=$('#badgeEyes');be.textContent=EV.eyeIssues?String(EV.eyeIssues):String(S.eyes.length);be.className='badge'+(EV.eyeIssues?' warn':'');
+  $('#badgeKids').textContent=String(S.kids.length);
+  $('#badgePlans').textContent=String(S.plans.length);
+  $('#undoBtn').disabled=!hist.length;
+  updateCount();
+}
+function chipHTML(k,o){
+  var pinned=S.pinned.indexOf(k.id)>=0,wd='',wt='',wl=o.wxs,lines=[],un=false,must=false,ed='';
+  if(wl&&wl.length){
+    wl.forEach(function(x){
+      var w=x.w;
+      lines.push(esc((w.kid===k.id?'Wants ':kname(w.kid)+' wants ')+targetText(w,S.rows)+' · '+PRI[w.pri].label+' · '+(WHY[w.why]||WHY.other).label+(w.note?' · '+w.note:'')+(x.s==='unmet'?' (not met)':(x.s==='met'?' (met)':''))));
+      if(x.s==='unmet'){un=true;if(w.pri==='must')must=true;}
+    });
+    if(un)wd='<span class="wdot'+(must?' must':'')+'" aria-hidden="true"></span>';
+  }
+  var ey=EV&&EV.eye&&S.seats.indexOf(k.id)>=0?EV.eye[k.id]:null;
+  if(ey&&ey.lv){
+    lines.push(esc('Eyes: '+acuText(ey.a.Y)+' · '+ey.lv.label+' to read the board from here'));
+    if(ey.lv.k==='hard'||ey.lv.k==='vhard'||ey.lv.k==='no')ed='<span class="edot '+ey.lv.k+'" aria-hidden="true">'+EYE_SVG+'</span>';
+  }
+  if(lines.length)wt=' title="'+lines.join('&#10;')+'"';
+  return '<div class="chip'+(o.sel?' sel':'')+'" data-kid="'+esc(k.id)+'"'+wt+'>'+
+    (o.bad?'<span class="warn" aria-hidden="true">!</span>':'')+wd+ed+
+    '<span class="nm" dir="auto">'+esc(k.name)+'</span>'+
+    (k.alt?'<span class="alt" dir="auto">'+esc(k.alt)+'</span>':'')+
+    '<button type="button" class="pin" data-pin="'+esc(k.id)+'" aria-pressed="'+pinned+'" aria-label="'+(pinned?'Unpin ':'Pin ')+esc(k.name)+'" title="'+(pinned?'Pinned: stays put when auto-arranging':'Pin: keep in place when auto-arranging')+'">'+PIN_SVG+'</button>'+
+  '</div>';
+}
+function wantAria(wl){
+  if(!wl)return '';
+  var u=wl.filter(function(x){return x.s==='unmet';}).map(function(x){return kname(x.w.kid)+' wants '+targetText(x.w,S.rows);});
+  return u.length?esc(', not met: '+u.join('; ')):'';
+}
+function renderStatus(){
+  var bad=EV.list.filter(function(x){return x.rule.on&&x.res.s==='bad';}).length;
+  var active=EV.list.filter(function(x){return x.rule.on;}).length;
+  var unseated=S.kids.filter(function(k){return S.seats.indexOf(k.id)<0;}).length;
+  var h='';
+  if(!active)h+='<span class="pill">No rules on</span>';
+  else if(bad)h+='<span class="pill bad">'+bad+(bad===1?' rule broken':' rules broken')+'</span>';
+  else h+='<span class="pill ok">All rules met</span>';
+  var wu=EV.wants.filter(function(x){return x.s==='unmet';}),mu=wu.filter(function(x){return x.w.pri==='must';}).length,ou=wu.length-mu;
+  if(mu)h+='<span class="pill bad">'+mu+(mu===1?' must-have want not met':' must-have wants not met')+'</span>';
+  if(ou)h+='<span class="pill want">'+ou+(ou===1?' want not met':' wants not met')+'</span>';
+  var eh=EV.eyeIssues-EV.eyeNo;
+  if(EV.eyeNo)h+='<span class="pill bad">'+EV.eyeNo+(EV.eyeNo===1?' kid can\u2019t read the board from their seat':' kids can\u2019t read the board from their seats')+'</span>';
+  if(eh)h+='<span class="pill want">'+eh+(eh===1?' kid may struggle to see the board':' kids may struggle to see the board')+'</span>';
+  if(unseated)h+='<span class="pill">'+unseated+' not seated</span>';
+  $('#status').innerHTML=h;
+}
+function renderStage(){
+  var km=kidMap(),h='',i,hm=holeMap(S),ed=!!UI.edit;
+  $('#rowsV').textContent=S.rows;$('#colsV').textContent=S.cols;
+  for(i=0;i<S.rows*S.cols;i++){
+    var id=S.seats[i],k=id&&km[id],r=Math.floor(i/S.cols),c=i%S.cols;
+    if(hm[i]){
+      h+=ed?'<div class="desk hole edit" data-cell="'+i+'" tabindex="0" role="button" aria-label="No desk at row '+(r+1)+', column '+(c+1)+'. Press to add a desk"><span class="pos">+</span></div>':'<div class="desk hole" aria-hidden="true"></div>';
+      continue;
+    }
+    var bad=!!(k&&EV.badKids[id]),sel=!!(k&&UI.sel===id),wx=k?EV.wantByKid[id]:null;
+    h+='<div class="desk'+(k?' has':'')+(bad?' bad':'')+(sel?' sel':'')+'" data-seat="'+i+'" data-cell="'+i+'" tabindex="0" role="group" aria-label="Row '+(r+1)+' of '+S.rows+', column '+(c+1)+' of '+S.cols+', '+(k?esc(k.name+(k.alt?' '+k.alt:''))+(bad?', breaks a rule':'')+wantAria(wx):'empty')+'">'+
+      (ed?'<span class="rm" aria-hidden="true">&times;</span>':'')+
+      (k?chipHTML(k,{bad:bad,sel:sel,wxs:wx}):'<span class="pos">'+(r+1)+'&middot;'+(c+1)+'</span>')+'</div>';
+  }
+  var room=$('#room');room.style.setProperty('--cols',S.cols);room.className='room'+(ed?' editing':'');room.innerHTML=h;
+  var t='';
+  S.kids.forEach(function(k){
+    if(S.seats.indexOf(k.id)<0)t+=chipHTML(k,{bad:false,sel:UI.sel===k.id});
+  });
+  $('#tray').innerHTML=t||'<span class="empty">Everyone is seated.</span>';
+  var lb=$('#layoutBtn'),bar=$('#layoutBar');
+  if(lb){lb.setAttribute('aria-pressed',String(ed));lb.textContent=ed?'Done editing layout':'Edit layout';}
+  if(bar)bar.hidden=!ed;
+  applyWantZone(UI.wantFocus||selWantIds());
+}
+function toggleDesk(i){
+  var removing=!holeMap(S)[i];
+  UI.sel=null;
+  mutate(function(){
+    if(removing){
+      S.holes.push(i);S.holes.sort(function(a,b){return a-b;});
+      var id=S.seats[i];S.seats[i]=null;
+      if(id)S.pinned=S.pinned.filter(function(x){return x!==id;});
+    }else S.holes=S.holes.filter(function(x){return x!==i;});
+  });
+}
+function applyWantZone(ids){
+  $$('.desk.wz').forEach(function(e){e.classList.remove('wz');});
+  ids=[].concat(ids||[]);
+  var ws=S.wants.filter(function(x){return ids.indexOf(x.id)>=0&&x.kind!=='apart';});
+  if(!ws.length)return;
+  $$('.desk[data-seat]').forEach(function(d){
+    var i=+d.dataset.seat,p={r:Math.floor(i/S.cols),c:i%S.cols};
+    if(ws.some(function(w){return inTarget(p,w,S.rows,S.cols);}))d.classList.add('wz');
+  });
+}
+function focusKidDesk(kid){
+  var i=S.seats.indexOf(kid);
+  var el=i>=0?document.querySelector('.desk[data-seat="'+i+'"]'):document.querySelector('#tray .chip[data-kid="'+kid+'"]');
+  if(el)el.classList.add('rf');
+}
+function ruleHTML(r,wrap){
+  var kn=function(ids){return ids.map(function(id){return wrap(kname(id));}).join(' ');};
+  if(r.type==='apart')return kn(r.as)+' can’t sit next to '+kn(r.bs);
+  if(r.type==='near')return kn(r.as)+' must sit next to '+(r.bs.length>1?'one of ':'')+kn(r.bs);
+  if(r.type==='zone')return kn(r.kids)+(r.not?' must not be in':' must be in')+' the '+ZONES[r.zone];
+  if(r.type==='want')return kn([r.kid])+' must sit in '+targetText(r,S.rows);
+  return kn([r.kid])+' sits at row '+(r.r+1)+', column '+(r.c+1);
+}
+function ruleTextPlain(r){return ruleHTML(r,function(s){return s;});}
+function renderRules(opts){
+  var h='';
+  S.rules.forEach(function(r){
+    var res=EV.map[r.id],cls,sym,tip;
+    if(!r.on){cls='';sym='–';tip='Rule is off';}
+    else if(res.s==='bad'){cls='bad';sym='!';tip='Broken';}
+    else if(res.s==='ok'){cls='ok';sym='✓';tip='Met';}
+    else{cls='';sym='·';tip='Waiting for kids to be seated';}
+    var hl=UI.sel&&kidsOf(r).indexOf(UI.sel)>=0;
+    var why='';
+    if(r.on&&res.s==='bad'){
+      why='<div class="why">Broken by: '+res.bad.map(function(g){return g.map(function(id){return '<bdi>'+esc(kname(id))+'</bdi>';}).join(' + ');}).join(', ')+'</div>';
+    }
+    var mode='';
+    if(r.type==='apart'||r.type==='near'){
+      mode='<label class="mode">Next to means <select data-mode="'+r.id+'" aria-label="What next to means">'+
+        Object.keys(MODES).map(function(m){return '<option value="'+m+'"'+(m===r.mode?' selected':'')+'>'+MODES[m]+'</option>';}).join('')+'</select></label>';
+    }
+    h+='<li class="rule'+(r.on?'':' off')+(hl?' hl':'')+'" data-rule="'+r.id+'">'+
+      '<span class="dot '+cls+'" title="'+tip+'">'+sym+'</span>'+
+      '<div class="rtext"><div>'+ruleHTML(r,function(s){return '<bdi class="k">'+esc(s)+'</bdi>';})+'</div>'+mode+why+'</div>'+
+      '<div class="ract"><label class="sw" title="Turn this rule on or off"><input type="checkbox" data-toggle="'+r.id+'"'+(r.on?' checked':'')+' aria-label="Rule on"><span></span></label>'+
+      '<button type="button" class="x" data-del="'+r.id+'" aria-label="Delete rule" title="Delete rule">'+X_SVG+'</button></div></li>';
+  });
+  if(!S.rules.length)h='<li class="muted" style="padding:10px 0">No rules yet. Build one above.</li>';
+  $('#ruleList').innerHTML=h;
+  if(opts&&opts.skip==='builder')return;
+  renderBuilder();
+}
+function pickHTML(group,sel,single){
+  if(!S.kids.length)return '<span class="muted">Add kids on the Kids tab first.</span>';
+  return '<div class="pick" role="group">'+S.kids.map(function(k){
+    var on=sel.indexOf(k.id)>=0;
+    return '<button type="button" data-pick="'+group+':'+esc(k.id)+'" aria-pressed="'+on+'" dir="auto">'+esc(k.name)+(k.alt?'<small>'+esc(k.alt)+'</small>':'')+'</button>';
+  }).join('')+'</div>';
+}
+function renderBuilder(){
+  var b=UI.b,h='';
+  var types=[['apart','Can’t sit next to'],['near','Must sit next to'],['zone','Row or column'],['seat','Fixed seat']];
+  h+='<div><div class="fl">New rule</div><div class="seg" role="group" aria-label="Rule type">'+types.map(function(t){
+    return '<button type="button" data-btype="'+t[0]+'" aria-pressed="'+(b.type===t[0])+'">'+t[1]+'</button>';
+  }).join('')+'</div></div>';
+  h+='<div><div class="fl">'+(b.type==='seat'?'Kid':'Who')+'</div>'+pickHTML('A',b.A)+'</div>';
+  if(b.type==='apart'||b.type==='near'){
+    h+='<div><div class="fl">'+(b.type==='apart'?'Can’t sit next to':'Must sit next to (at least one of)')+'</div>'+pickHTML('B',b.B)+'</div>';
+    h+='<label class="row"><span class="fl" style="margin:0">Next to means</span><select id="bMode">'+Object.keys(MODES).map(function(m){return '<option value="'+m+'"'+(m===b.mode?' selected':'')+'>'+MODES[m]+'</option>';}).join('')+'</select></label>';
+  }else if(b.type==='zone'){
+    h+='<div class="row"><select id="bNot" aria-label="Must or must not"><option value="0"'+(b.not?'':' selected')+'>must be in</option><option value="1"'+(b.not?' selected':'')+'>must not be in</option></select>'+
+      '<select id="bZone" aria-label="Where">'+Object.keys(ZONES).map(function(z){return '<option value="'+z+'"'+(z===b.zone?' selected':'')+'>the '+ZONES[z]+'</option>';}).join('')+'</select></div>';
+  }else{
+    var ro='',co='',i;
+    if(b.r>=S.rows)b.r=0;if(b.c>=S.cols)b.c=0;
+    for(i=0;i<S.rows;i++)ro+='<option value="'+i+'"'+(i===b.r?' selected':'')+'>'+(i+1)+(i===0?' (front)':(i===S.rows-1?' (back)':''))+'</option>';
+    for(i=0;i<S.cols;i++)co+='<option value="'+i+'"'+(i===b.c?' selected':'')+'>'+(i+1)+'</option>';
+    h+='<div class="row"><label class="row"><span class="fl" style="margin:0">Row</span><select id="bRow">'+ro+'</select></label><label class="row"><span class="fl" style="margin:0">Column</span><select id="bCol">'+co+'</select></label></div>';
+  }
+  var ready=b.A.length&&((b.type==='apart'||b.type==='near')?b.B.length:true);
+  h+='<div class="row"><button type="button" class="btn primary" id="addRule"'+(ready?'':' disabled')+'>Add rule</button><span class="muted">'+(ready?'':'Pick who the rule is about.')+'</span></div>';
+  $('#builder').innerHTML=h;
+}
+function loadWant(kidId,wantId){
+  var w=wantId?S.wants.filter(function(x){return x.id===wantId;})[0]:null;
+  if(w)UI.w={id:w.id,kid:w.kid,kind:w.kind,r:w.r,c:w.c,zone:w.zone,other:w.other||'',mode:w.mode||'diag',why:w.why,note:w.note,pri:w.pri,priTouched:suggestPri(w.why,w.note).pri!==w.pri};
+  else UI.w={id:null,kid:kidId,kind:'row',r:0,c:0,zone:'front',other:'',mode:'diag',why:'prefers',note:'',pri:'low',priTouched:false};
+}
+function rowOpts(sel){
+  var o='';
+  for(var i=0;i<S.rows;i++)o+='<option value="'+i+'"'+(i===sel?' selected':'')+'>'+(i+1)+(i===0?' (front)':(i===S.rows-1?' (back)':''))+'</option>';
+  return o;
+}
+function colOpts(sel){
+  var o='';
+  for(var i=0;i<S.cols;i++)o+='<option value="'+i+'"'+(i===sel?' selected':'')+'>'+(i+1)+'</option>';
+  return o;
+}
+var EYE_SVG='<svg viewBox="0 0 16 16" width="14" height="14"><path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>';
+function eyeMeters(e){var d=+e.dist||0;return e.unit==='ft'?d*0.3048:(e.unit==='tile'?d*S.room.tile/100:d);}
+function roomM(v){return S.room.unit==='tile'?v*S.room.tile/100:v;}
+function r1(x){return Math.round(x*10)/10;}
+function eyeDistText(e){
+  var u=e.unit==='ft'?'ft':(e.unit==='tile'?(+e.dist===1?'tile':'tiles'):'m');
+  return e.dist+' '+u+(e.unit==='m'?'':' ('+r1(eyeMeters(e))+' m)');
+}
+function eyeBestLine(e){return Math.max(e.both|0,e.re|0,e.le|0);}
+/* Y = the "20/Y" the kid can read. The printed chart is built for 10 ft; a bigger projection makes it easier, a longer distance harder. */
+function eyeAcuity(e){
+  var ix=eyeBestLine(e),dm=eyeMeters(e);
+  if(ix<1||ix>9||!(dm>0))return null;
+  var sc=e.echo>0?e.echo/E_PRINT_CM:1;
+  return {Y:EYE_LINES[ix-1]*(CHART_FT*0.3048/dm)*sc,line:ix,assumed:!(e.echo>0)};
+}
+/* How many times bigger the board letters are than the smallest the kid can read from this row. */
+function eyeRowMargin(Y,row){
+  var D=roomM(S.room.front)+row*roomM(S.room.gap);
+  return ((S.room.letter/100)/D*3437.75)/(Y/4);
+}
+function eyeLevel(m){return m>=3?LEVELS.easy:m>=2?LEVELS.ok:m>=1.4?LEVELS.hard:m>=1?LEVELS.vhard:LEVELS.no;}
+function eyeLastOK(Y){var last=-1;for(var r=0;r<S.rows;r++){if(eyeRowMargin(Y,r)>=2)last=r;else break;}return last;}
+function acuText(Y){return '20/'+Math.round(Y)+' (6/'+Math.round(Y*0.3)+')';}
+function computeEyeEV(){
+  EV.eye={};EV.eyeIssues=0;EV.eyeNo=0;
+  S.eyes.forEach(function(e){
+    var a=eyeAcuity(e);if(!a)return;
+    var si=S.seats.indexOf(e.kid),row=si>=0?Math.floor(si/S.cols):-1,lv=row>=0?eyeLevel(eyeRowMargin(a.Y,row)):null;
+    EV.eye[e.kid]={a:a,row:row,lv:lv};
+    if(lv&&(lv.k==='hard'||lv.k==='vhard'||lv.k==='no'))EV.eyeIssues++;
+    if(lv&&lv.k==='no')EV.eyeNo++;
+  });
+}
+function loadEye(kid){
+  var t=S.eyes.filter(function(x){return x.kid===kid;})[0],last=S.eyes[S.eyes.length-1];
+  if(t)UI.e={kid:kid,dist:String(t.dist),unit:t.unit,echo:t.echo?String(t.echo):'',glasses:t.glasses,both:t.both,re:t.re,le:t.le};
+  else UI.e={kid:kid,dist:last?String(last.dist):'3',unit:last?last.unit:(S.room.unit==='tile'?'tile':'m'),echo:last&&last.echo?String(last.echo):'',glasses:false,both:0,re:0,le:0};
+}
+function roomInput(key,label,val,min,max){
+  return '<label class="row"><span class="fl" style="margin:0">'+label+'</span><input type="number" data-room="'+key+'" min="'+min+'" max="'+max+'" step="0.1" value="'+val+'" aria-label="'+label+'"></label>';
+}
+function renderEyes(){
+  var pane=$('#paneEyes');if(!pane)return;
+  var km=kidMap(),h='';
+  if(!S.kids.length){pane.innerHTML='<p class="muted">Add kids on the Kids tab first.</p>';return;}
+  if(!km[UI.e.kid])loadEye(S.kids[0].id);
+  var e=UI.e,R=S.room,has=S.eyes.some(function(x){return x.kid===e.kid;});
+  var lineOpts=function(sel){
+    var o='<option value="0"'+(sel===0?' selected':'')+'>Not tested</option>';
+    EYE_LINES.forEach(function(x,i){o+='<option value="'+(i+1)+'"'+(sel===i+1?' selected':'')+'>Line '+(i+1)+' · 20/'+x+'</option>';});
+    return o;
+  };
+  h+='<h2>Eye tests</h2><p class="muted">Enter how far away each kid stood and the smallest line they could read. The planner works out how easy the board is to read from each row.</p>';
+  var tl=R.unit==='tile',ul=tl?'tiles':'m';
+  h+='<div class="builder"><div class="fl">Your room</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Measure the room in</span><select id="roomUnit"><option value="m"'+(tl?'':' selected')+'>meters</option><option value="tile"'+(tl?' selected':'')+'>floor tiles</option></select></label>'+(tl?roomInput('tile','Size of one floor tile (cm)',R.tile,10,200):'')+roomInput('front','Board to front row ('+ul+')',R.front,0.5,60)+roomInput('gap','Space between rows ('+ul+')',R.gap,0.3,10)+roomInput('letter','Board letters, height (cm)',R.letter,1,30)+'</div><div class="muted">Distance is measured straight back from the board. Seats off to the side are a little farther than this.'+(tl?' Measure one floor tile along its side, then just count tiles.':'')+'</div></div>';
+  h+='<div class="builder">';
+  h+='<div><label class="fl" for="eKid">Kid</label><select id="eKid">'+S.kids.map(function(k){
+    return '<option value="'+esc(k.id)+'"'+(k.id===e.kid?' selected':'')+'>'+esc(k.name+(k.alt?' ('+k.alt+')':''))+(S.eyes.some(function(x){return x.kid===k.id;})?' ✓':'')+'</option>';
+  }).join('')+'</select></div>';
+  h+='<div><div class="fl">How far away they stood</div><div class="row"><input type="number" id="eDist" min="0.3" step="0.1" value="'+esc(e.dist)+'" style="width:5em" aria-label="Distance"><select id="eUnit" aria-label="Unit"><option value="m"'+(e.unit==='m'?' selected':'')+'>meters</option><option value="ft"'+(e.unit==='ft'?' selected':'')+'>feet</option><option value="tile"'+(e.unit==='tile'?' selected':'')+'>floor tiles</option></select></div></div>';
+  h+='<div><label class="fl" for="eEcm">Height of the big E on the projected chart (cm)</label><input type="number" id="eEcm" min="0" step="0.5" value="'+esc(e.echo)+'" placeholder="Measure it, or leave empty" style="width:100%"><div class="muted" style="margin-top:4px">A projected chart is not the printed size, so measure the tall E at the top with a ruler. On the printed page it is about 4.4 cm. If you leave it empty the planner assumes the printed size and marks the result as a rough guess.</div></div>';
+  h+='<div><div class="fl">Smallest line they read</div><div class="roomrow"><label class="row"><span class="fl" style="margin:0">Both eyes</span><select id="eBoth">'+lineOpts(e.both)+'</select></label><label class="row"><span class="fl" style="margin:0">Right eye</span><select id="eRe">'+lineOpts(e.re)+'</select></label><label class="row"><span class="fl" style="margin:0">Left eye</span><select id="eLe">'+lineOpts(e.le)+'</select></label></div><div class="muted" style="margin-top:4px">Pick the last line where they got at least half the letters. Use Not tested for anything you skipped. If you filled in more than one, the best one is used.</div></div>';
+  h+='<label class="row"><input type="checkbox" id="eGl"'+(e.glasses?' checked':'')+'> They wore glasses during the test</label>';
+  h+='<div class="sugg" id="ePrev"></div>';
+  h+='<div class="row"><button type="button" class="btn primary" id="saveEye">'+(has?'Update test':'Save test')+'</button>'+(has?'<button type="button" class="btn" id="delEyeBtn">Remove test</button>':'')+'</div></div>';
+  var list=S.eyes.map(function(t){return {t:t,a:eyeAcuity(t)};}).filter(function(x){return x.a;}).sort(function(a,b){return b.a.Y-a.a.Y;});
+  list.forEach(function(x){
+    var t=x.t,a=x.a,ev=EV.eye[t.kid],last=eyeLastOK(a.Y),strip='';
+    for(var r=0;r<S.rows;r++){
+      var lv=eyeLevel(eyeRowMargin(a.Y,r));
+      strip+='<span class="lv '+lv.k+(ev&&ev.row===r?' here':'')+'">Row '+(r+1)+'<small>'+lv.label+'</small></span>';
+    }
+    var eyes=[];if(t.both)eyes.push('both eyes');if(t.re)eyes.push('right');if(t.le)eyes.push('left');
+    h+='<div class="eyecard"><div><bdi class="k">'+esc(kname(t.kid))+'</bdi> · <b>'+acuText(a.Y)+'</b></div>'+
+      '<div class="wmeta"><span>Read line '+a.line+' (20/'+EYE_LINES[a.line-1]+' on the chart) from '+esc(eyeDistText(t))+'</span><span>tested: '+eyes.join(', ')+'</span>'+(t.glasses?'<span>with glasses</span>':'')+(a.assumed?'<span>rough guess: chart size not entered</span>':'')+'</div>'+
+      '<div class="rowstrip" role="group" aria-label="Board visibility by row">'+strip+'</div>'+
+      '<div class="wnow">'+(ev&&ev.lv?'Now in row '+(ev.row+1)+': '+ev.lv.label+' to read the board':'Not seated right now')+'</div>'+
+      '<div class="row" style="margin-top:6px"><button type="button" class="linkbtn" data-eedit="'+esc(t.kid)+'">Edit</button>'+
+      (last<S.rows-1?'<button type="button" class="linkbtn" data-ewant="'+esc(t.kid)+'">Add a want: '+(last<=0?'front row':'rows 1 to '+(last+1))+'</button>':'<span class="muted">Fine from every row</span>')+
+      '<button type="button" class="x" data-edel="'+esc(t.kid)+'" aria-label="Remove test" title="Remove test">'+X_SVG+'</button></div></div>';
+  });
+  if(!list.length)h+='<p class="muted" style="padding:10px 0">No eye tests yet.</p>';
+  h+='<p class="muted">This is a rough guide from a chart screening, not a medical test. Fine means the board letters are comfortably bigger than the smallest the kid can read. Hard means they will probably squint or miss things. A kid with a real concern should see an eye doctor.</p>';
+  pane.innerHTML=h;
+  updateEyePreview();
+}
+function updateEyePreview(){
+  var el=$('#ePrev');if(!el)return;
+  var e=UI.e,a=eyeAcuity({dist:parseFloat(e.dist),unit:e.unit,echo:parseFloat(e.echo)||0,both:e.both,re:e.re,le:e.le});
+  if(!a){el.textContent='Enter the distance and a line to see the estimated acuity.';return;}
+  el.innerHTML='Estimated acuity: <b>'+acuText(a.Y)+'</b>'+(a.assumed?'. The chart size is not entered, so this assumes the printed size.':'.')+(e.unit!=='m'?' <span>Distance: about '+r1(eyeMeters({dist:parseFloat(e.dist),unit:e.unit}))+' m.</span>':'');
+}
+function saveEye(){
+  var e=UI.e,d=parseFloat(e.dist),ec=parseFloat(e.echo);
+  if(!e.kid)return;
+  if(!(d>0)){toast('Enter how far away the kid stood.');return;}
+  if(!eyeBestLine(e)){toast('Pick the smallest line they read.');return;}
+  var rec={kid:e.kid,dist:clamp(d,0.3,30),unit:e.unit==='ft'?'ft':(e.unit==='tile'?'tile':'m'),echo:ec>0?clamp(ec,0.5,200):0,glasses:!!e.glasses,both:e.both|0,re:e.re|0,le:e.le|0};
+  var upd=S.eyes.some(function(x){return x.kid===rec.kid;});
+  mutate(function(){S.eyes=S.eyes.filter(function(x){return x.kid!==rec.kid;});S.eyes.push(rec);});
+  loadEye(rec.kid);renderEyes();
+  toast((upd?'Updated the eye test for ':'Saved an eye test for ')+kname(rec.kid));
+}
+function delEye(kid){
+  mutate(function(){S.eyes=S.eyes.filter(function(x){return x.kid!==kid;});});
+  loadEye(kid);renderEyes();
+  toast('Removed the eye test for '+kname(kid),{label:'Undo',fn:undo});
+}
+function eyeWant(kid){
+  var t=S.eyes.filter(function(x){return x.kid===kid;})[0],a=t&&eyeAcuity(t);
+  if(!a)return;
+  var last=eyeLastOK(a.Y);
+  if(last>=S.rows-1){toast(kname(kid)+' can read the board comfortably from every row.');return;}
+  var r=Math.max(last,0),note='Eye test 20/'+Math.round(a.Y),pri=suggestPri('health',note).pri;
+  var ex=S.wants.filter(function(x){return x.kid===kid&&x.kind==='rows'&&/^Eye test/.test(x.note);})[0];
+  mutate(function(){
+    if(ex){ex.r=r;ex.note=note;ex.pri=pri;}
+    else S.wants.push({id:'w'+uid(),kid:kid,kind:'rows',r:r,c:0,zone:'front',other:'',mode:'diag',why:'health',note:note,pri:pri,on:true});
+  });
+  toast('Added a '+PRI[pri].label+' want: '+kname(kid)+' in '+targetText({kind:'rows',r:r},S.rows)+'. Change its priority on the Wants tab.');
+}
+function renderWants(){
+  var pane=$('#paneWants'),km=kidMap(),h='';
+  if(!S.kids.length){pane.innerHTML='<p class="muted">Add kids on the Kids tab first.</p>';return;}
+  if(!km[UI.w.kid])loadWant(S.kids[0].id);
+  var w=UI.w;
+  if(w.r>=S.rows)w.r=0;
+  if(w.c>=S.cols)w.c=0;
+  if(w.kind==='apart'){
+    var oth=S.kids.filter(function(k){return k.id!==w.kid;});
+    if(!oth.some(function(k){return k.id===w.other;}))w.other=oth.length?oth[0].id:'';
+  }
+  var existing=w.id?S.wants.filter(function(x){return x.id===w.id;})[0]:null;
+  var kinds=[['seat','To sit in a specific seat'],['row','To sit in a row (any chair)'],['col','To sit in a column (any row)'],['rows','To sit in the first few rows'],['zone','To sit in an area'],['apart','Not to sit next to a kid']];
+  h+='<h2>Where kids want to sit</h2><div class="builder">';
+  h+='<div><label class="fl" for="wKid">Kid</label><select id="wKid">'+S.kids.map(function(k){
+    return '<option value="'+esc(k.id)+'"'+(k.id===w.kid?' selected':'')+'>'+esc(k.name+(k.alt?' ('+k.alt+')':''))+(function(){var c=S.wants.filter(function(x){return x.kid===k.id;}).length;return c?' ✓'+c:'';})()+'</option>';
+  }).join('')+'</select></div>';
+  h+='<div><div class="fl">What they want</div><div class="row"><select id="wKind" aria-label="Kind of spot">'+kinds.map(function(k){return '<option value="'+k[0]+'"'+(k[0]===w.kind?' selected':'')+'>'+k[1]+'</option>';}).join('')+'</select>';
+  if(w.kind==='seat')h+='<label class="row"><span class="fl" style="margin:0">Row</span><select id="wRow">'+rowOpts(w.r)+'</select></label><label class="row"><span class="fl" style="margin:0">Column</span><select id="wCol">'+colOpts(w.c)+'</select></label>';
+  else if(w.kind==='rows')h+='<label class="row"><span class="fl" style="margin:0">Up to row</span><select id="wRow">'+rowOpts(w.r)+'</select></label>';
+  else if(w.kind==='row')h+='<select id="wRow" aria-label="Row">'+rowOpts(w.r)+'</select>';
+  else if(w.kind==='col')h+='<select id="wCol" aria-label="Column">'+colOpts(w.c)+'</select>';
+  else if(w.kind==='apart')h+=apartParams(w);
+  else h+='<select id="wZone" aria-label="Area">'+Object.keys(ZONES).map(function(z){return '<option value="'+z+'"'+(z===w.zone?' selected':'')+'>the '+ZONES[z]+'</option>';}).join('')+'</select>';
+  h+='</div></div>';
+  h+='<div><div class="fl">Why</div><div class="pick" role="group">'+Object.keys(WHY).map(function(k){
+    return '<button type="button" data-why="'+k+'" aria-pressed="'+(w.why===k)+'" title="Suggests '+PRI[WHY[k].pri].label+'">'+WHY[k].label+'<small>'+PRI[WHY[k].pri].label+'</small></button>';
+  }).join('')+'</div><input type="text" id="wNote" placeholder="Note (optional), for example: wears glasses, gets distracted" value="'+esc(w.note)+'" aria-label="Note" style="width:100%;margin-top:8px"></div>';
+  h+='<div><div class="fl">How much it matters</div><div class="seg" id="priSeg" role="group" aria-label="Priority">'+PRI_ORDER.map(function(k){
+    return '<button type="button" data-pri="'+k+'" aria-pressed="'+(w.pri===k)+'">'+PRI[k].label+'</button>';
+  }).join('')+'</div><div class="muted" id="priHint" style="margin-top:6px"></div><div class="sugg" id="sugg"></div></div>';
+  h+='<div class="row"><button type="button" class="btn primary" id="saveWant">'+(existing?'Update want':'Add want')+'</button>'+(existing?'<button type="button" class="btn" id="cancelWant">Cancel edit</button><button type="button" class="btn" id="delWantBtn">Remove want</button>':'')+'</div></div>';
+  var list=S.wants.slice().sort(function(a,b){
+    var d=PRI_ORDER.indexOf(a.pri)-PRI_ORDER.indexOf(b.pri);
+    return d||kname(a.kid).localeCompare(kname(b.kid));
+  });
+  var nDiff=list.filter(function(x){return suggestPri(x.why,x.note).pri!==x.pri;}).length;
+  if(nDiff)h+='<div class="row" style="margin:8px 0"><span class="muted">'+nDiff+(nDiff===1?' want differs':' wants differ')+' from the suggested priority.</span><button type="button" class="btn" id="applyAllSugg">Apply all suggestions</button></div>';
+  h+='<ul class="rules wants" id="wantList">';
+  list.forEach(function(x){
+    var st=EV.wantById[x.id],s=st?st.s:'pending',cls,sym;
+    if(s==='off'){cls='';sym='–';}
+    else if(s==='met'){cls='ok';sym='✓';}
+    else if(s==='unmet'){cls=x.pri==='must'?'bad':'want';sym='!';}
+    else{cls='';sym='·';}
+    var sg=suggestPri(x.why,x.note),sugRow=sg.pri!==x.pri?'<div class="wnow">Suggested: <b>'+PRI[sg.pri].label+'</b> <button type="button" class="linkbtn" data-wapply="'+x.id+'">Apply</button></div>':'';
+    var now='',si=S.seats.indexOf(x.kid);
+    if(s==='unmet'&&x.kind==='apart')now='<div class="wnow">Currently next to '+esc(kname(x.other))+'</div>';
+    else if(s==='unmet'&&si>=0)now='<div class="wnow">Now in row '+(Math.floor(si/S.cols)+1)+', column '+(si%S.cols+1)+'</div>';
+    h+='<li class="want'+(x.on?'':' off')+'" data-want="'+x.id+'"><span class="dot '+cls+'">'+sym+'</span>'+
+      '<div class="wtext"><div><bdi class="k">'+esc(kname(x.kid))+'</bdi> wants <b>'+esc(targetText(x,S.rows))+'</b></div>'+
+      '<div class="wmeta"><span class="pri '+x.pri+'">'+PRI[x.pri].label+'</span><span>'+esc(WHY[x.why].label)+'</span>'+(x.note?'<span>'+esc(x.note)+'</span>':'')+'</div>'+now+sugRow+'</div>'+
+      '<div class="ract"><button type="button" class="linkbtn" data-wedit="'+x.id+'">Edit</button><label class="sw" title="Turn this want on or off"><input type="checkbox" data-wtoggle="'+x.id+'"'+(x.on?' checked':'')+' aria-label="Want on"><span></span></label>'+
+      '<button type="button" class="x" data-wdel="'+x.id+'" aria-label="Remove want" title="Remove want">'+X_SVG+'</button></div></li>';
+  });
+  if(!list.length)h+='<li class="muted" style="padding:10px 0">No wants yet. Pick a kid above, say where they want to sit and why, then set how much it matters. Kids you leave out have no preference.</li>';
+  h+='</ul>';
+  pane.innerHTML=h;
+  updateSugg();
+}
+function apartParams(w){
+  var others=S.kids.filter(function(k){return k.id!==w.kid;});
+  return '<label class="row"><span class="fl" style="margin:0">Away from</span><select id="wOther" aria-label="Kid to sit away from">'+others.map(function(k){
+    return '<option value="'+esc(k.id)+'"'+(k.id===w.other?' selected':'')+'>'+esc(k.name+(k.alt?' ('+k.alt+')':''))+'</option>';
+  }).join('')+'</select></label><label class="row"><span class="fl" style="margin:0">Counts as next to</span><select id="wMode">'+Object.keys(MODES).map(function(m){
+    return '<option value="'+m+'"'+(m===w.mode?' selected':'')+'>'+MODES[m]+'</option>';
+  }).join('')+'</select></label>';
+}
+function updateSugg(){
+  var w=UI.w,sg=suggestPri(w.why,w.note);
+  if(!w.priTouched)w.pri=sg.pri;
+  $$('#priSeg button').forEach(function(b){
+    b.setAttribute('aria-pressed',String(w.pri===b.dataset.pri));
+    b.classList.toggle('sug',sg.pri===b.dataset.pri);
+  });
+  var hint=$('#priHint');if(hint)hint.textContent=PRI[w.pri].hint;
+  var el=$('#sugg');if(!el)return;
+  var txt;
+  if(sg.hit)txt='Suggested: <b>'+PRI[sg.pri].label+'</b>. Your note mentions a '+(sg.hit==='must'?'health or accessibility need':'focus or behavior concern')+' (the reason alone suggests '+PRI[sg.base].label+').';
+  else txt='Suggested: <b>'+PRI[sg.pri].label+'</b>, from the reason \u201c'+esc(WHY[w.why].label)+'\u201d.';
+  el.innerHTML=txt+(w.pri!==sg.pri?' <button type="button" class="linkbtn" id="useSugg">Use '+PRI[sg.pri].label+'</button>':'');
+}
+function applySuggestion(wid){
+  var w=S.wants.filter(function(x){return x.id===wid;})[0];
+  if(!w)return;
+  var sg=suggestPri(w.why,w.note);
+  if(sg.pri===w.pri)return;
+  mutate(function(){S.wants.forEach(function(x){if(x.id===wid)x.pri=sg.pri;});});
+  if(UI.w.id===wid){UI.w.pri=sg.pri;UI.w.priTouched=false;}
+  renderWants();
+  toast('Set '+kname(w.kid)+' to '+PRI[sg.pri].label,{label:'Undo',fn:undo});
+}
+function applyAllSuggestions(){
+  var n=0;
+  mutate(function(){S.wants.forEach(function(x){var sg=suggestPri(x.why,x.note);if(sg.pri!==x.pri){x.pri=sg.pri;n++;}});});
+  loadWant(UI.w.kid);renderWants();
+  toast('Applied the suggested priority to '+n+(n===1?' want':' wants'),{label:'Undo',fn:undo});
+}
+function saveWant(){
+  var w=UI.w;
+  if(!w.kid)return;
+  if(w.kind==='apart'&&(!w.other||w.other===w.kid||!kidMap()[w.other])){toast('Pick which kid '+kname(w.kid)+' should not sit next to.');return;}
+  var rec={id:w.id||('w'+uid()),kid:w.kid,kind:w.kind,r:w.r,c:w.c,zone:w.zone,other:w.kind==='apart'?w.other:'',mode:w.mode||'diag',why:w.why,note:(w.note||'').trim(),pri:w.pri,on:true};
+  var upd=!!w.id&&S.wants.some(function(x){return x.id===w.id;});
+  function same(x){
+    if(x.kid!==rec.kid||x.kind!==rec.kind||x.id===rec.id)return false;
+    if(rec.kind==='seat')return x.r===rec.r&&x.c===rec.c;
+    if(rec.kind==='row'||rec.kind==='rows')return x.r===rec.r;
+    if(rec.kind==='col')return x.c===rec.c;
+    if(rec.kind==='zone')return x.zone===rec.zone;
+    return x.other===rec.other;
+  }
+  if(S.wants.some(same)){toast(kname(rec.kid)+' already has that want. Use Edit on it instead.');return;}
+  if(!upd&&S.wants.filter(function(x){return x.kid===rec.kid;}).length>=8){toast('That is the most wants one kid can have (8).');return;}
+  mutate(function(){
+    var ix=-1;
+    S.wants.forEach(function(x,i){if(x.id===rec.id)ix=i;});
+    if(ix>=0){rec.on=S.wants[ix].on;S.wants[ix]=rec;}else S.wants.push(rec);
+  });
+  loadWant(w.kid);renderWants();
+  toast((upd?'Updated the want for ':'Added a want for ')+kname(rec.kid));
+}
+function delWant(wid){
+  var w=S.wants.filter(function(x){return x.id===wid;})[0];
+  if(!w)return;
+  mutate(function(){S.wants=S.wants.filter(function(x){return x.id!==wid;});});
+  loadWant(UI.w.kid);renderWants();
+  toast('Removed the want for '+kname(w.kid),{label:'Undo',fn:undo});
+}
+function renderKids(){
+  var h='<h2>Class list</h2>';
+  S.kids.forEach(function(k){
+    h+='<div class="kidrow"><input type="text" data-kname="'+esc(k.id)+'" value="'+esc(k.name)+'" aria-label="Name" dir="auto"><input type="text" data-kalt="'+esc(k.id)+'" value="'+esc(k.alt)+'" placeholder="Second name (optional)" aria-label="Second name" dir="auto"><button type="button" class="x" data-kdel="'+esc(k.id)+'" aria-label="Remove '+esc(k.name)+'" title="Remove kid">'+X_SVG+'</button></div>';
+  });
+  h+='<div class="addkid"><input type="text" id="newName" placeholder="Name" aria-label="New kid name" dir="auto"><input type="text" id="newAlt" placeholder="Second name (optional)" aria-label="New kid second name" dir="auto"><button type="button" class="btn primary" id="addKid">Add</button></div>';
+  h+='<p class="muted">Removing a kid also removes them from rules and saved plans.</p>';
+  $('#paneKids').innerHTML=h;
+}
+function renderPlans(){
+  var km=kidMap();
+  var h='<h2>Save and generate</h2>';
+  h+='<div class="row"><input type="text" id="planName" placeholder="Plan '+(S.plans.length+1)+'" aria-label="Plan name" style="flex:1;min-width:120px"><button type="button" class="btn" id="savePlan">Save current</button></div>';
+  h+='<div class="row" style="margin-top:8px"><span class="muted">Make</span><select id="genN" aria-label="How many plans"><option>1</option><option>3</option><option selected>5</option><option>10</option></select><span class="muted">different valid plans</span><button type="button" class="btn primary" id="genBtn">Generate</button></div>';
+  h+='<div class="plans">';
+  S.plans.forEach(function(p){
+    var ev=evalAll(p.seats,p.rows,p.cols,S.rules);
+    var nb=ev.list.filter(function(x){return x.rule.on&&x.res.s==='bad';}).length;
+    var cells='';
+    var phm=holeMap(p);
+    p.seats.forEach(function(id,ix){if(phm[ix]){cells+='<span class="hole" aria-hidden="true"></span>';return;}var k=id&&km[id];cells+='<span dir="auto">'+(k?esc(k.name):'&nbsp;')+'</span>';});
+    h+='<div class="plan" data-plan="'+p.id+'"><input type="text" class="pname" data-pname="'+p.id+'" value="'+esc(p.name)+'" aria-label="Plan name">'+
+      '<div class="mini" data-pload="'+p.id+'" style="--cols:'+p.cols+'" title="Load this plan">'+cells+'</div>'+
+      '<div class="meta"><span class="st '+(nb?'bad':'ok')+'">'+(nb?nb+(nb===1?' rule broken':' rules broken'):'Valid')+'</span><span class="links"><button type="button" data-pload="'+p.id+'">Load</button><button type="button" class="del" data-pdel="'+p.id+'">Delete</button></span></div></div>';
+  });
+  h+='</div>';
+  if(!S.plans.length)h+='<p class="muted">No saved plans yet.</p>';
+  h+='<div class="sect"><h2>Share and back up</h2><div class="row">'+
+    '<button type="button" class="btn" id="expImg" data-needs-dl hidden>Image of this plan</button>'+
+    '<button type="button" class="btn" id="expAll" data-needs-dl hidden>Image of all plans</button>'+
+    '<button type="button" class="btn" id="copyTxt">Copy as text</button>'+
+    '<button type="button" class="btn" id="expJson" data-needs-dl hidden>Backup file</button>'+
+    '<button type="button" class="btn" id="impBtn">Restore backup</button></div></div>';
+  $('#panePlans').innerHTML=h;
+  if(DL)$$('[data-needs-dl]').forEach(function(e){e.hidden=false;});
+}
+function setTab(t){
+  UI.tab=t;
+  ['rules','wants','eyes','kids','plans'].forEach(function(n){
+    var on=n===t,id=n.charAt(0).toUpperCase()+n.slice(1);
+    $('#tab'+id).setAttribute('aria-selected',on);
+    $('#pane'+id).hidden=!on;
+  });
+}
+
+/* ---------- actions ---------- */
+function moveKid(id,target){
+  var from=S.seats.indexOf(id);
+  if(target.tray){if(from<0)return;mutate(function(){S.seats[from]=null;});return;}
+  var to=target.seat;
+  if(S.seats[to]===id)return;
+  mutate(function(){var occ=S.seats[to];if(from>=0)S.seats[from]=occ;S.seats[to]=id;});
+}
+function activateSeat(i){
+  var occ=S.seats[i];
+  if(!UI.sel){
+    if(occ){UI.sel=occ;renderStage();renderRules({skip:'builder'});}
+    return;
+  }
+  if(occ===UI.sel){UI.sel=null;renderStage();renderRules({skip:'builder'});return;}
+  var id=UI.sel;UI.sel=null;moveKid(id,{seat:i});
+}
+function togglePin(id){
+  mutate(function(){var i=S.pinned.indexOf(id);if(i>=0)S.pinned.splice(i,1);else S.pinned.push(id);},{skip:'kids'});
+}
+function resizeGrid(nr,nc){
+  nr=clamp(nr,1,10);nc=clamp(nc,1,10);
+  if(nr===S.rows&&nc===S.cols)return;
+  mutate(function(){
+    var old=S.seats,oc=S.cols,ns=[],i;
+    for(i=0;i<nr*nc;i++)ns.push(null);
+    for(i=0;i<old.length;i++){
+      if(!old[i])continue;
+      var r=Math.floor(i/oc),c=i%oc;
+      if(r<nr&&c<nc)ns[r*nc+c]=old[i];
+    }
+    var nh=[];
+    (S.holes||[]).forEach(function(hh){var r=Math.floor(hh/oc),c=hh%oc;if(r<nr&&c<nc)nh.push(r*nc+c);});
+    S.rows=nr;S.cols=nc;S.seats=ns;S.holes=nh.sort(function(a,b){return a-b;});
+  });
+}
+function diagnose(){
+  var ok=[],cands=[];
+  S.rules.forEach(function(r){if(r.on)cands.push(r);});
+  S.wants.forEach(function(w){if(w.on&&w.pri==='must')cands.push(wantRule(w));});
+  cands.forEach(function(r){
+    if(ok.length>=3)return;
+    if(solve(S,160,r.id))ok.push(r);
+  });
+  return ok;
+}
+function setBusy(btn,txt,on){
+  if(on){btn.dataset.old=btn.textContent;btn.textContent=txt;btn.disabled=true;}
+  else{btn.textContent=btn.dataset.old||btn.textContent;btn.disabled=false;}
+}
+function noSolution(){
+  if(S.kids.length>deskCount(S)){toast('There are more kids than desks. Add a row or column.');return;}
+  var ok=diagnose();
+  if(ok.length){toast('No seating meets every rule. It works if you turn off: '+ok.map(ruleTextPlain).join(' / '));}
+  else toast('No seating meets every rule, or it took too long to find one. Try turning a rule off or unpinning kids.');
+}
+function autoArrange(){
+  var btn=$('#autoBtn');setBusy(btn,'Working…',true);
+  setTimeout(function(){
+    var res=null,t=0;
+    while(!res&&t<3){res=solveBest(S,900);t++;}
+    setBusy(btn,'',false);
+    if(!res){noSolution();return;}
+    UI.sel=null;
+    mutate(function(){S.seats=res.seats;});
+    if(res.hasSoft){
+      if(!res.unmet.length)toast('Arranged. Every want was met.');
+      else toast('Arranged. Not met: '+res.unmet.slice(0,3).map(function(w){return kname(w.kid)+(w.kind==='apart'?' not next to '+kname(w.other):'')+' ('+PRI[w.pri].label+')';}).join(', ')+(res.unmet.length>3?' and '+(res.unmet.length-3)+' more':'')+'.');
+    }
+  },30);
+}
+function generate(){
+  var btn=$('#genBtn'),n=+$('#genN').value||5;setBusy(btn,'Working…',true);
+  setTimeout(function(){
+    var pool=[],keys={},t0=performance.now(),tries=0,fails=0;
+    var target=Math.max(n*6,24);
+    while(pool.length<target&&performance.now()-t0<1500&&tries<500){
+      tries++;
+      var s=solveBest(S,250);
+      if(!s){fails++;if(!pool.length&&fails>=3)break;continue;}
+      var key=s.seats.join(',');
+      if(!keys[key]){keys[key]=1;pool.push(s);}
+    }
+    var topScore=-1;
+    pool.forEach(function(q){if(q.score>topScore)topScore=q.score;});
+    pool=pool.filter(function(q){return q.score>=topScore;}).map(function(q){return q.seats;});
+    var btn2=$('#genBtn');if(btn2)setBusy(btn2,'',false);
+    if(!pool.length){noSolution();return;}
+    var refs=S.plans.filter(function(p){return p.rows===S.rows&&p.cols===S.cols;}).map(function(p){return p.seats;});
+    refs.push(S.seats);
+    var picked=pickDiverse(pool,n,refs);
+    mutate(function(){
+      picked.forEach(function(seats){
+        S.plans.push({id:'p'+uid(),name:'Plan '+(S.plans.length+1),rows:S.rows,cols:S.cols,holes:S.holes.slice(),seats:seats});
+      });
+    });
+    toast(picked.length<n?('Only '+picked.length+' different valid plans found. Added them.'):('Added '+picked.length+' plans.'));
+  },30);
+}
+function savePlan(name){
+  name=(name||'').trim()||('Plan '+(S.plans.length+1));
+  mutate(function(){S.plans.push({id:'p'+uid(),name:name,rows:S.rows,cols:S.cols,holes:S.holes.slice(),seats:S.seats.slice()});});
+  toast('Saved “'+name+'” in Plans');
+}
+function loadPlan(id){
+  var p=S.plans.filter(function(x){return x.id===id;})[0];if(!p)return;
+  UI.sel=null;
+  mutate(function(){S.rows=p.rows;S.cols=p.cols;S.holes=(p.holes||[]).slice();S.seats=p.seats.slice();});
+  toast('Loaded “'+p.name+'”');
+}
+function addRule(){
+  var b=UI.b,rule=null,base={id:'r'+uid(),on:true};
+  if(b.type==='apart'||b.type==='near'){
+    if(!b.A.length||!b.B.length)return;
+    rule={id:base.id,on:true,type:b.type,as:b.A.slice(),bs:b.B.slice(),mode:b.mode};
+  }else if(b.type==='zone'){
+    if(!b.A.length)return;
+    rule={id:base.id,on:true,type:'zone',kids:b.A.slice(),zone:b.zone,not:b.not};
+  }else{
+    if(!b.A.length)return;
+    rule={id:base.id,on:true,type:'seat',kid:b.A[0],r:b.r,c:b.c};
+  }
+  b.A=[];b.B=[];
+  mutate(function(){S.rules.push(rule);});
+  toast('Rule added');
+}
+function removeKid(id){
+  var k=kidMap()[id];if(!k)return;
+  mutate(function(){
+    var ids={};S.kids=S.kids.filter(function(x){return x.id!==id;});S.kids.forEach(function(x){ids[x.id]=1;});
+    S.seats=S.seats.map(function(x){return x===id?null:x;});
+    S.pinned=S.pinned.filter(function(x){return x!==id;});
+    S.rules=S.rules.map(function(r){return cleanRule(r,ids);}).filter(Boolean);
+    S.plans.forEach(function(p){p.seats=p.seats.map(function(x){return x===id?null:x;});});
+    S.wants=S.wants.filter(function(w){return w.kid!==id&&w.other!==id;});
+    S.eyes=S.eyes.filter(function(e){return e.kid!==id;});
+    if(UI.w.kid===id)UI.w.kid='';
+    if(UI.sel===id)UI.sel=null;
+    ['A','B'].forEach(function(g){UI.b[g]=UI.b[g].filter(function(x){return x!==id;});});
+  });
+  toast('Removed '+k.name,{label:'Undo',fn:undo});
+}
+function addKid(){
+  var n=$('#newName'),a=$('#newAlt'),name=n.value.trim();
+  if(!name){n.focus();return;}
+  var id='k'+uid();
+  mutate(function(){S.kids.push({id:id,name:name,alt:a.value.trim()});});
+  var nn=$('#newName');if(nn)nn.focus();
+}
+
+/* ---------- text / image export ---------- */
+function planText(){
+  var km=kidMap(),lines=[],hm=holeMap(S);
+  for(var r=0;r<S.rows;r++){
+    var row=[];
+    for(var c=0;c<S.cols;c++){var k=km[S.seats[r*S.cols+c]];if(hm[r*S.cols+c]){row.push(' ');continue;}row.push(k?(k.name+(k.alt?' ('+k.alt+')':'')):'-');}
+    lines.push(row.join('  |  '));
+  }
+  return 'Board\n'+lines.join('\n');
+}
+function copyText(){
+  var t=planText();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){toast('Copied. Board is the first line, front row next.');},function(){toast('Copy is blocked here. Use the image export instead.');});
+  }else toast('Copy is blocked here. Use the image export instead.');
+}
+function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function planMetrics(p,w){
+  var gap=10,cw=(w-gap*(p.cols-1))/p.cols,ch=clamp(cw*0.5,50,80);
+  return {gap:gap,cw:cw,ch:ch,h:34+36+p.rows*(ch+gap)};
+}
+function drawPlan(ctx,x,y,w,p,title){
+  var km=kidMap(),m=planMetrics(p,w);
+  ctx.textAlign='left';ctx.fillStyle='#14213D';ctx.font='600 20px Rubik, "Segoe UI", sans-serif';ctx.fillText(title,x,y+20);
+  y+=34;
+  var bw=Math.min(w*0.6,360);
+  ctx.fillStyle='#24493E';rrect(ctx,x+(w-bw)/2,y,bw,24,5);ctx.fill();
+  ctx.fillStyle='#E7F1EC';ctx.textAlign='center';ctx.font='400 12px "Secular One", Rubik, sans-serif';ctx.fillText('BOARD',x+w/2,y+16);
+  y+=36;
+  var hm=holeMap(p);
+  for(var r=0;r<p.rows;r++)for(var c=0;c<p.cols;c++){
+    if(hm[r*p.cols+c])continue;
+    var cx=x+c*(m.cw+m.gap),cy=y+r*(m.ch+m.gap),k=km[p.seats[r*p.cols+c]];
+    ctx.fillStyle=k?'#FFFFFF':'#F4F6FA';rrect(ctx,cx,cy,m.cw,m.ch,8);ctx.fill();
+    ctx.lineWidth=1.5;ctx.strokeStyle='#B9C3D3';if(!k)ctx.setLineDash([5,4]);rrect(ctx,cx,cy,m.cw,m.ch,8);ctx.stroke();ctx.setLineDash([]);
+    if(k){
+      ctx.fillStyle='#14213D';ctx.textAlign='center';ctx.font='600 20px Rubik, "Segoe UI", sans-serif';
+      ctx.fillText(k.name,cx+m.cw/2,cy+m.ch/2+(k.alt?0:7),m.cw-10);
+      if(k.alt){ctx.fillStyle='#56637C';ctx.font='400 12px Rubik, "Segoe UI", sans-serif';ctx.fillText(k.alt,cx+m.cw/2,cy+m.ch/2+18,m.cw-10);}
+    }
+  }
+  return m.h;
+}
+function canvasToBlob(cv){return new Promise(function(res){cv.toBlob(res,'image/png');});}
+function saveFile(name,data){
+  try{
+    var blob=data instanceof Blob?data:new Blob([data],{type:'application/json'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    toast('Saved '+name);
+    return Promise.resolve(true);
+  }catch(e){toast('Could not save the file.');return Promise.resolve(false);}
+}
+function fontsReady(){
+  try{return Promise.all([document.fonts.load('600 20px Rubik'),document.fonts.load('400 12px "Secular One"')]).catch(function(){});}catch(e){return Promise.resolve();}
+}
+function exportImage(){
+  fontsReady().then(function(){
+    var W=900,p={rows:S.rows,cols:S.cols,holes:S.holes,seats:S.seats},m=planMetrics(p,W-48),H=m.h+48+10;
+    var cv=document.createElement('canvas'),sc=2;cv.width=W*sc;cv.height=H*sc;
+    var ctx=cv.getContext('2d');ctx.scale(sc,sc);ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,W,H);
+    drawPlan(ctx,24,24,W-48,p,window.I18N?I18N.t('Seating plan'):'Seating plan');
+    return canvasToBlob(cv);
+  }).then(function(b){if(b)return saveFile('seating-plan.png',b);});
+}
+function exportAll(){
+  if(!S.plans.length){toast('Save or generate some plans first.');return;}
+  fontsReady().then(function(){
+    var colW=520,gap=28,pad=24,cols=2,W=pad*2+colW*cols+gap*(cols-1),y=pad,rowsOut=[];
+    for(var i=0;i<S.plans.length;i+=cols){
+      var grp=S.plans.slice(i,i+cols),h=0;
+      grp.forEach(function(p){h=Math.max(h,planMetrics(p,colW).h);});
+      rowsOut.push({grp:grp,y:y});y+=h+gap;
+    }
+    var H=y+pad-gap,cv=document.createElement('canvas'),sc=2;
+    cv.width=W*sc;cv.height=H*sc;
+    var ctx=cv.getContext('2d');ctx.scale(sc,sc);ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,W,H);
+    rowsOut.forEach(function(row){row.grp.forEach(function(p,j){drawPlan(ctx,pad+j*(colW+gap),row.y,colW,p,p.name);});});
+    return canvasToBlob(cv);
+  }).then(function(b){if(b)return saveFile('seating-plans.png',b);});
+}
+function exportJson(){saveFile('seat-planner-backup.json',JSON.stringify(S,null,2)).then(function(ok){if(ok)dirty=false;});}
+function importJson(file){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var st=null;
+    try{st=normalize(JSON.parse(String(fr.result)));}catch(e){}
+    if(!st||!st.kids.length){toast('That file is not a seat planner backup.');return;}
+    UI.sel=null;
+    mutate(function(){S=st;});
+    toast('Backup restored',{label:'Undo',fn:undo});
+  };
+  fr.onerror=function(){toast('Could not read that file.');};
+  fr.readAsText(file);
+}
+
+/* ---------- rule focus (hover a rule, see its kids) ---------- */
+function setRuleFocus(id){
+  $$('.rf').forEach(function(e){e.classList.remove('rf');});
+  if(!id)return;
+  var r=S.rules.filter(function(x){return x.id===id;})[0];if(!r)return;
+  kidsOf(r).forEach(function(kid){
+    var i=S.seats.indexOf(kid);
+    var el=i>=0?document.querySelector('.desk[data-seat="'+i+'"]'):document.querySelector('#tray .chip[data-kid="'+kid+'"]');
+    if(el)el.classList.add('rf');
+  });
+}
+
+/* ---------- events ---------- */
+var suppressClick=false,drag=null;
+document.addEventListener('click',function(e){
+  if(suppressClick){e.stopPropagation();e.preventDefault();return;}
+  var t=e.target,el;
+  if(UI.edit){var cell=t.closest('[data-cell]');if(cell){toggleDesk(+cell.dataset.cell);return;}}
+  if((el=t.closest('[data-pin]'))){togglePin(el.dataset.pin);e.stopPropagation();return;}
+  if((el=t.closest('[data-seat]'))){activateSeat(+el.dataset.seat);return;}
+  if(t.closest('#tray')){
+    var chip=t.closest('[data-kid]');
+    if(chip){UI.sel=UI.sel===chip.dataset.kid?null:chip.dataset.kid;renderStage();renderRules({skip:'builder'});}
+    else if(UI.sel&&S.seats.indexOf(UI.sel)>=0){var id=UI.sel;UI.sel=null;moveKid(id,{tray:true});}
+    return;
+  }
+  if((el=t.closest('[data-step]'))){var p=el.dataset.step.split(':'),d=+p[1];resizeGrid(p[0]==='rows'?S.rows+d:S.rows,p[0]==='cols'?S.cols+d:S.cols);return;}
+  if((el=t.closest('[data-tab]'))){setTab(el.dataset.tab);return;}
+  if((el=t.closest('[data-btype]'))){UI.b.type=el.dataset.btype;if(UI.b.type==='seat')UI.b.A=UI.b.A.slice(0,1);renderBuilder();return;}
+  if((el=t.closest('[data-pick]'))){
+    var pr=el.dataset.pick.split(':'),g=pr[0],kid=pr.slice(1).join(':'),arr=UI.b[g],ix=arr.indexOf(kid);
+    if(UI.b.type==='seat'&&g==='A')UI.b.A=ix>=0?[]:[kid];
+    else if(ix>=0)arr.splice(ix,1);else arr.push(kid);
+    renderBuilder();return;
+  }
+  if((el=t.closest('[data-del]'))){
+    var rid=el.dataset.del;
+    mutate(function(){S.rules=S.rules.filter(function(r){return r.id!==rid;});});
+    toast('Rule deleted',{label:'Undo',fn:undo});return;
+  }
+  if((el=t.closest('[data-kdel]'))){removeKid(el.dataset.kdel);return;}
+  if((el=t.closest('[data-why]'))){UI.w.why=el.dataset.why;renderWants();return;}
+  if((el=t.closest('[data-pri]'))){UI.w.pri=el.dataset.pri;UI.w.priTouched=true;updateSugg();return;}
+  if((el=t.closest('[data-wapply]'))){applySuggestion(el.dataset.wapply);return;}
+  if((el=t.closest('[data-eedit]'))){loadEye(el.dataset.eedit);renderEyes();var eb=document.querySelector('#paneEyes .builder');if(eb&&eb.scrollIntoView)eb.scrollIntoView({block:'nearest'});return;}
+  if((el=t.closest('[data-ewant]'))){eyeWant(el.dataset.ewant);return;}
+  if((el=t.closest('[data-edel]'))){delEye(el.dataset.edel);return;}
+  if((el=t.closest('[data-wedit]'))){loadWant(null,el.dataset.wedit);renderWants();var bl=document.querySelector('#paneWants .builder');if(bl&&bl.scrollIntoView)bl.scrollIntoView({block:'nearest'});return;}
+  if((el=t.closest('[data-wdel]'))){delWant(el.dataset.wdel);return;}
+  if((el=t.closest('[data-pdel]'))){
+    var pid=el.dataset.pdel;
+    mutate(function(){S.plans=S.plans.filter(function(p){return p.id!==pid;});});
+    toast('Plan deleted',{label:'Undo',fn:undo});return;
+  }
+  if((el=t.closest('[data-pload]'))){loadPlan(el.dataset.pload);return;}
+  var id2=t.id||(t.closest('button')&&t.closest('button').id);
+  switch(id2){
+    case 'undoBtn':undo();break;
+    case 'whyBtn':noSolution();break;
+    case 'saveWant':saveWant();break;
+    case 'layoutBtn':UI.edit=!UI.edit;UI.sel=null;renderStage();break;
+    case 'resetLayout':if(S.holes.length)mutate(function(){S.holes=[];});break;
+    case 'saveEye':saveEye();break;
+    case 'delEyeBtn':if(UI.e.kid)delEye(UI.e.kid);break;
+    case 'useSugg':UI.w.priTouched=false;updateSugg();break;
+    case 'applyAllSugg':applyAllSuggestions();break;
+    case 'delWantBtn':if(UI.w.id)delWant(UI.w.id);break;
+    case 'cancelWant':loadWant(UI.w.kid);renderWants();break;
+    case 'autoBtn':autoArrange();break;
+    case 'clearBtn':
+      if(!S.seats.some(function(x){return x&&S.pinned.indexOf(x)<0;}))break;
+      UI.sel=null;mutate(function(){S.seats=S.seats.map(function(x){return x&&S.pinned.indexOf(x)>=0?x:null;});});break;
+    case 'saveBtn':savePlan('');break;
+    case 'addRule':addRule();break;
+    case 'addKid':addKid();break;
+    case 'savePlan':var pn=$('#planName');savePlan(pn.value);break;
+    case 'genBtn':generate();break;
+    case 'expImg':exportImage();break;
+    case 'expAll':exportAll();break;
+    case 'copyTxt':copyText();break;
+    case 'expJson':exportJson();break;
+    case 'impBtn':$('#impFile').click();break;
+  }
+});
+document.addEventListener('change',function(e){
+  var t=e.target,id;
+  if(t.id==='impFile'){if(t.files&&t.files[0])importJson(t.files[0]);t.value='';return;}
+  if(t.dataset.toggle){id=t.dataset.toggle;mutate(function(){S.rules.forEach(function(r){if(r.id===id)r.on=t.checked;});});return;}
+  if(t.dataset.mode){id=t.dataset.mode;mutate(function(){S.rules.forEach(function(r){if(r.id===id)r.mode=t.value;});});return;}
+  if(t.dataset.kname){id=t.dataset.kname;var nv=t.value.trim();if(!nv){t.value=kname(id);return;}mutate(function(){S.kids.forEach(function(k){if(k.id===id)k.name=nv;});},{skip:'kids'});return;}
+  if(t.dataset.kalt){id=t.dataset.kalt;var av=t.value.trim();mutate(function(){S.kids.forEach(function(k){if(k.id===id)k.alt=av;});},{skip:'kids'});return;}
+  if(t.dataset.pname){id=t.dataset.pname;var pv=t.value.trim()||'Plan';mutate(function(){S.plans.forEach(function(p){if(p.id===id)p.name=pv;});},{skip:'plans'});return;}
+  if(t.dataset.wtoggle){id=t.dataset.wtoggle;mutate(function(){S.wants.forEach(function(w){if(w.id===id)w.on=t.checked;});});return;}
+  if(t.id==='wKid'){loadWant(t.value);renderWants();return;}
+  if(t.id==='wKind'){UI.w.kind=t.value;renderWants();return;}
+  if(t.id==='wRow'){UI.w.r=+t.value;return;}
+  if(t.id==='wCol'){UI.w.c=+t.value;return;}
+  if(t.id==='wZone'){UI.w.zone=t.value;return;}
+  if(t.dataset.room){var rv=parseFloat(t.value);if(isFinite(rv)){var rk=t.dataset.room;mutate(function(){S.room[rk]=rv;S.room=cleanRoom(S.room);});}else renderEyes();return;}
+  if(t.id==='eKid'){loadEye(t.value);renderEyes();return;}
+  if(t.id==='eUnit'){UI.e.unit=t.value;updateEyePreview();return;}
+  if(t.id==='roomUnit'){
+    var nu=t.value==='tile'?'tile':'m';
+    if(nu!==S.room.unit)mutate(function(){
+      var R=S.room,k=R.tile/100;
+      if(nu==='tile'){R.front=Math.round(R.front/k*2)/2;R.gap=Math.round(R.gap/k*2)/2;}
+      else{R.front=Math.round(R.front*k*10)/10;R.gap=Math.round(R.gap*k*10)/10;}
+      R.unit=nu;S.room=cleanRoom(R);
+    });
+    return;
+  }
+  if(t.id==='eBoth'||t.id==='eRe'||t.id==='eLe'){UI.e[t.id.slice(1).toLowerCase()]=+t.value;updateEyePreview();return;}
+  if(t.id==='eGl'){UI.e.glasses=t.checked;return;}
+  if(t.id==='wOther'){UI.w.other=t.value;return;}
+  if(t.id==='wMode'){UI.w.mode=t.value;return;}
+  if(t.id==='bMode')UI.b.mode=t.value;
+  else if(t.id==='bNot')UI.b.not=t.value==='1';
+  else if(t.id==='bZone')UI.b.zone=t.value;
+  else if(t.id==='bRow')UI.b.r=+t.value;
+  else if(t.id==='bCol')UI.b.c=+t.value;
+});
+document.addEventListener('keydown',function(e){
+  var t=e.target;
+  var typing=t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA');
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();undo();return;}
+  if(e.key==='Escape'&&UI.sel){UI.sel=null;renderStage();renderRules({skip:'builder'});return;}
+  if(typing){
+    if(e.key==='Enter'&&(t.id==='newName'||t.id==='newAlt'))addKid();
+    if(e.key==='Enter'&&t.id==='planName')savePlan(t.value);
+    return;
+  }
+  if(UI.edit&&(e.key==='Enter'||e.key===' ')&&t.dataset&&t.dataset.cell!==undefined){e.preventDefault();toggleDesk(+t.dataset.cell);return;}
+  if((e.key==='Enter'||e.key===' ')&&t.dataset&&t.dataset.seat!==undefined&&t.classList.contains('desk')){e.preventDefault();activateSeat(+t.dataset.seat);}
+});
+function selWantIds(){
+  var l=UI.sel&&EV.wantByKid[UI.sel];
+  if(!l)return [];
+  return l.filter(function(x){return x.w.kid===UI.sel&&x.w.kind!=='apart'&&x.w.on;}).map(function(x){return x.w.id;});
+}
+function focusWant(wl){
+  var wid=wl?wl.dataset.want:null;
+  if(wid!==UI.wantFocus){UI.wantFocus=wid;applyWantZone(wid||selWantIds());}
+  if(wl){var w=S.wants.filter(function(x){return x.id===wid;})[0];if(w){focusKidDesk(w.kid);if(w.kind==='apart')focusKidDesk(w.other);}}
+}
+document.addEventListener('mouseover',function(e){
+  var li=e.target.closest&&e.target.closest('.rule');
+  setRuleFocus(li?li.dataset.rule:null);
+  focusWant(e.target.closest&&e.target.closest('.want'));
+});
+document.addEventListener('focusin',function(e){
+  var li=e.target.closest&&e.target.closest('.rule');
+  if(li)setRuleFocus(li.dataset.rule);
+  var wl=e.target.closest&&e.target.closest('.want');
+  if(wl)focusWant(wl);
+});
+document.addEventListener('input',function(e){
+  var t=e.target;if(!t)return;
+  if(t.id==='wNote'){UI.w.note=t.value;updateSugg();}
+  if(t.id==='eDist'){UI.e.dist=t.value;updateEyePreview();}
+  if(t.id==='eEcm'){UI.e.echo=t.value;updateEyePreview();}
+});
+
+/* pointer dragging */
+document.addEventListener('pointerdown',function(e){
+  if(e.button>0)return;
+  if(UI.edit)return;
+  if(e.target.closest('[data-pin]'))return;
+  var chip=e.target.closest('.chip[data-kid]');
+  if(!chip)return;
+  drag={id:chip.dataset.kid,x:e.clientX,y:e.clientY,started:false,el:chip,ghost:null,hover:null};
+});
+function dropTarget(x,y){
+  var el=document.elementFromPoint(x,y);
+  return el?el.closest('[data-seat],[data-tray]'):null;
+}
+document.addEventListener('pointermove',function(e){
+  if(!drag)return;
+  if(!drag.started){
+    if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)<7)return;
+    drag.started=true;
+    var g=drag.el.cloneNode(true),rc=drag.el.getBoundingClientRect();
+    g.classList.add('ghost');g.classList.remove('sel');
+    g.style.width=Math.max(rc.width,84)+'px';
+    document.body.appendChild(g);drag.ghost=g;
+    drag.el.classList.add('dragging');document.body.classList.add('is-dragging');
+  }
+  e.preventDefault();
+  var gw=drag.ghost.offsetWidth,gh=drag.ghost.offsetHeight;
+  drag.ghost.style.transform='translate('+(e.clientX-gw/2)+'px,'+(e.clientY-gh/2)+'px)';
+  var tg=dropTarget(e.clientX,e.clientY);
+  if(drag.hover&&drag.hover!==tg)drag.hover.classList.remove('drop');
+  if(tg)tg.classList.add('drop');
+  drag.hover=tg;
+},{passive:false});
+function endDrag(e,commit){
+  if(!drag)return;
+  var d=drag;drag=null;
+  if(!d.started)return;
+  if(d.ghost&&d.ghost.parentNode)d.ghost.parentNode.removeChild(d.ghost);
+  d.el.classList.remove('dragging');document.body.classList.remove('is-dragging');
+  if(d.hover)d.hover.classList.remove('drop');
+  suppressClick=true;setTimeout(function(){suppressClick=false;},60);
+  if(!commit)return;
+  var tg=dropTarget(e.clientX,e.clientY);
+  if(!tg)return;
+  UI.sel=null;
+  if(tg.hasAttribute('data-tray'))moveKid(d.id,{tray:true});
+  else moveKid(d.id,{seat:+tg.dataset.seat});
+  renderAll();
+}
+document.addEventListener('pointerup',function(e){endDrag(e,true);});
+document.addEventListener('pointercancel',function(e){endDrag(e,false);});
+
+/* ---------- boot ---------- */
+setTab('rules');
+renderAll();
+initStore();
+})();
+</script>
+
+<script src="../shared/i18n.js"></script>
+<script src="../shared/he.js"></script>
+<script>I18N.start();</script>
+</body>
+</html>

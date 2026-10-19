@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teacher Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Secular+One&display=swap">
+<style>
+:root{
+  --paper:#EDF0F5; --sheet:#FFFFFF; --ink:#14213D; --ink-2:#56637C; --line:#D6DCE6;
+  --accent:#2B59D9; --accent-ink:#FFFFFF; --accent-soft:#E4EBFC; --hl:#FFE066;
+  --board:#24493E; --board-ink:#E7F1EC;
+  --f-display:'Secular One','Rubik','Segoe UI',system-ui,sans-serif;
+  --f-body:'Rubik','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0F1623; --sheet:#172033; --ink:#E8EDF7; --ink-2:#97A3BA; --line:#2B3750;
+    --accent:#7FA2FF; --accent-ink:#0B1530; --accent-soft:#22305A; --hl:#E5BF3A;
+    --board:#1B3A31; --board-ink:#DDEBE4; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding:0 max(16px,env(safe-area-inset-right)) 56px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:880px;margin:0 auto}
+.bar{background:var(--board);color:var(--board-ink);border-radius:0 0 18px 18px;padding:28px 24px 26px;margin:0 -8px 28px}
+h1{font:400 clamp(28px,6vw,40px)/1.1 var(--f-display);margin:0 0 6px}
+.lang{float:right;margin-inline-start:12px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:999px;padding:4px 12px;font:500 13px var(--f-body);cursor:pointer}
+.bar p{margin:0;opacity:.85;max-width:52ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+a.card{display:flex;flex-direction:column;gap:6px;background:var(--sheet);border:1px solid var(--line);border-radius:14px;
+  padding:18px;color:inherit;text-decoration:none;box-shadow:0 2px 0 var(--line)}
+a.card:hover{border-color:var(--accent)}
+a.card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card h2{font:400 21px/1.2 var(--f-display);margin:0}
+.card p{margin:0;color:var(--ink-2);font-size:14px}
+.go{margin-top:auto;padding-top:8px;color:var(--accent);font-weight:500}
+.soon{border-style:dashed;box-shadow:none;color:var(--ink-2);text-align:center;justify-content:center;min-height:130px}
+.note{margin-top:28px;color:var(--ink-2);font-size:13px;max-width:62ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <button type="button" class="lang" data-lang-toggle data-notr>עברית</button>
+    <h1>Teacher Tools</h1>
+    <p>Small tools for the classroom. They run in your browser, nothing is uploaded, and nothing is saved on a server.</p>
+  </header>
+  <main>
+    <div class="grid">
+      <a class="card" href="seat-planner/">
+        <h2>Seat Planner</h2>
+        <p>Plan seating with rules, kids' wants, and eye-test results. Drag kids around, auto-arrange, and save plans.</p>
+        <span class="go">Open →</span>
+      </a>
+      <a class="card" href="eye-test/">
+        <h2>Eye Test Helper</h2>
+        <p>Work out how well a kid can see the board from each row, using a simple chart test. Works with a projected chart and floor tiles.</p>
+        <span class="go">Open →</span>
+      </a>
+      <div class="card soon" aria-label="More tools coming"><p>More tools coming</p></div>
+    </div>
+    <p class="note">Your work is not stored by the site. Each tool has a backup button to save a file to your computer, and a restore button to load it again.</p>
+  </main>
+</div>
+<script src="shared/i18n.js"></script>
+<script src="shared/he.js"></script>
+<script>I18N.start();</script>
+</body>
+</html>
